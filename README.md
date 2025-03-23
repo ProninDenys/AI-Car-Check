@@ -1,37 +1,36 @@
-# 🤖 AI Job Assistant
+# 🚗 AI Car Check
 
-AI Job Assistant is a smart and powerful Telegram bot that helps users create professional, recruiter-friendly resumes in just a few minutes.
+**AI Car Check** is a smart and powerful Telegram bot that helps users in **Ireland** check vehicle history and estimate insurance and road tax based on registration number and car parameters.
 
-It generates resumes in both **PDF** and **DOCX** formats using **OpenAI GPT**, and provides a clean and stylish interface through Telegram with interactive buttons.
+It’s designed for drivers, buyers, and car owners who want quick insights before buying or insuring a vehicle.
 
 ---
 
 ## ✨ Features
 
-- Create professional resumes with GPT-3.5
-- Export to **PDF** and **DOCX**
-- Modern Telegram UI with buttons and prompts
-- Recruiter-focused prompts with "What Makes Me Stand Out" section
-- Easy deployment with **Render**
+- Check vehicle by **registration number** (accidents, NCT, owners, etc.)
+- Estimate **insurance cost** based on driver profile and car details
+- Estimate **Road Tax** using engine size, fuel type, and year
+- Telegram-based step-by-step flow with interactive buttons
+- Future support for real data via **MotorCheck API**, **data.gov.ie**, and **gov.ie**
 
 ---
 
-## 🧠 Tech Stack
+## 🧰 Tech Stack
 
 - `Python`
 - `python-telegram-bot`
-- `OpenAI API`
-- `reportlab` (PDF generation)
-- `python-docx` (DOCX export)
-- `dotenv` for secret management
+- `dotenv` (for environment variables)
 - `Render.com` for 24/7 deployment
+- *(optional in future)*: `MotorCheck API`, `data.gov.ie`, `gov.ie`
 
 ---
 
-## 🔧 Local Setup
-
-1. Clone this repository:
+## 🚀 Local Setup
 
 ```bash
-git clone https://github.com/your-username/ai-job-assistant-bot.git
-cd ai-job-assistant-bot
+git clone https://github.com/ProninDenys/ai-car-check-bot.git
+cd ai-car-check-bot
+python -m venv venv
+source venv/bin/activate  
+pip install -r requirements.txt
