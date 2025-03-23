@@ -176,7 +176,7 @@ Interests: {user_data['interests']}
 
     else:
         await update.message.reply_text("Type /start or press ✍️ New Resume to begin.")
-        
+
         # === PROMPT С WOW-ЭФФЕКТОМ ===
         prompt = f"""
 Create a standout resume for the following person that will capture the attention of recruiters. 
@@ -203,9 +203,6 @@ Skills: {user_data['skills']}
         await update.message.reply_document(open(docx_path, "rb"), filename="resume.docx")
 
         user_states.pop(user_id, None)
-
-    else:
-        await update.message.reply_text("Type /start to begin or click ✍️ New Resume.")
 
 # ======== ЗАПУСК БОТА ========
 app = ApplicationBuilder().token(BOT_TOKEN).build()
