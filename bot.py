@@ -71,7 +71,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     user_states[update.effective_user.id] = {'step': None}
 
-# ======== ГЛАВНАЯ ЛОГИКА БОТА ========
+# ======== ГЛАВНАЯ ЛОГИКА БОТА (ОБНОВЛЁННАЯ) ========
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     user_data = user_states.get(user_id, {})
@@ -79,43 +79,104 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if update.message.text == "✍️ New Resume":
         user_data['step'] = 'name'
-        await update.message.reply_text("Let's create your resume!\nPlease enter your full name:")
-        return
-    elif update.message.text == "📄 My Last Resume":
-        await update.message.reply_text("❌ Sorry, this feature is coming soon!")
-        return
-    elif update.message.text == "💡 LinkedIn Boost":
-        await update.message.reply_text("🚀 Tip: Add action words like 'improved', 'led', 'optimized' in your resume!")
-        return
-    elif update.message.text == "🎯 ATS Scan":
-        await update.message.reply_text("🧠 Coming soon: scan your resume for ATS-compatibility.")
-        return
-    elif update.message.text == "📤 Share My Resume":
-        await update.message.reply_text("🔗 Tip: Export and send your resume on LinkedIn or email.")
-        return
-    elif update.message.text == "🌐 Switch Language":
-        await update.message.reply_text("🌍 Language switching feature is in development.")
-        return
-    elif update.message.text == "💬 Help & Tips":
-        await update.message.reply_text("🛠 Use '✍️ New Resume' to start. Add relevant skills and clear experience. We'll handle the rest!")
+        await update.message.reply_text("Let's create your Recruiter-Killer Resume 🧠\n\nFirst, please enter your full name:")
         return
 
-    if step == 'name':
+    elif step == 'name':
         user_data['name'] = update.message.text
         user_data['step'] = 'position'
         await update.message.reply_text("What position are you applying for?")
     elif step == 'position':
         user_data['position'] = update.message.text
+        user_data['step'] = 'phone'
+        await update.message.reply_text("📞 Please enter your phone number:")
+    elif step == 'phone':
+        user_data['phone'] = update.message.text
+        user_data['step'] = 'email'
+        await update.message.reply_text("📧 Please enter your email:")
+    elif step == 'email':
+        user_data['email'] = update.message.text
+        user_data['step'] = 'location'
+        await update.message.reply_text("📍 City and country you're based in:")
+    elif step == 'location':
+        user_data['location'] = update.message.text
+        user_data['step'] = 'linkedin'
+        await update.message.reply_text("🌐 Enter your LinkedIn or personal website:")
+    elif step == 'linkedin':
+        user_data['linkedin'] = update.message.text
+        user_data['step'] = 'education'
+        await update.message.reply_text("🎓 Write your education (school, course, dates):")
+    elif step == 'education':
+        user_data['education'] = update.message.text
+        user_data['step'] = 'about'
+        await update.message.reply_text("🧠 Write a short About Me section:")
+    elif step == 'about':
+        user_data['about'] = update.message.text
         user_data['step'] = 'experience'
-        await update.message.reply_text("Describe your work experience:")
+        await update.message.reply_text("💼 Describe your job experience (with dates):")
     elif step == 'experience':
         user_data['experience'] = update.message.text
         user_data['step'] = 'skills'
-        await update.message.reply_text("List your key skills:")
+        await update.message.reply_text("🔧 List your key skills:")
     elif step == 'skills':
         user_data['skills'] = update.message.text
+        user_data['step'] = 'interests'
+        await update.message.reply_text("🎯 List a few personal interests:")
+    elif step == 'interests':
+        user_data['interests'] = update.message.text
         await update.message.reply_text("⏳ Generating your resume...")
 
+        # === PROMPT: Recruiter-Killer Resume
+        prompt = f"""
+Create a recruiter-killer resume with WOW-effect.
+Make it professional, ATS-optimized, and ready for top employers (Google, Meta, etc).
+Use a beautiful structure with sections: 
+
+- Name  
+- Job Title  
+- Contact Info  
+- Summary  
+- Experience  
+- Education  
+- Skills  
+- Interests  
+- Personal Website  
+- LinkedIn  
+
+Highlight accomplishments and soft skills.
+
+---
+
+Name: {user_data['name']}
+Position: {user_data['position']}
+Phone: {user_data['phone']}
+Email: {user_data['email']}
+Location: {user_data['location']}
+LinkedIn/Website: {user_data['linkedin']}
+Education: {user_data['education']}
+Summary/About: {user_data['about']}
+Experience: {user_data['experience']}
+Skills: {user_data['skills']}
+Interests: {user_data['interests']}
+"""
+
+        response = openai.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt}],
+        )
+
+        resume_text = response.choices[0].message.content
+        pdf_path, docx_path = generate_files(resume_text)
+
+        await update.message.reply_text("✅ Resume is ready! Download below:")
+        await update.message.reply_document(open(pdf_path, "rb"), filename="resume.pdf")
+        await update.message.reply_document(open(docx_path, "rb"), filename="resume.docx")
+
+        user_states.pop(user_id, None)
+
+    else:
+        await update.message.reply_text("Type /start or press ✍️ New Resume to begin.")
+        
         # === PROMPT С WOW-ЭФФЕКТОМ ===
         prompt = f"""
 Create a standout resume for the following person that will capture the attention of recruiters. 
