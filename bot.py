@@ -188,5 +188,7 @@ app.add_handler(CommandHandler("start", start))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 app.add_handler(CallbackQueryHandler(handle_callback))
 
-print("\ud83d\ude97 AI Car Check Bot is running...")
+print("AI Car Check Bot is running...")
+import asyncio
+asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 app.run_polling()
