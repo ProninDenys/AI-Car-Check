@@ -1,36 +1,60 @@
-# 🚗 AI Car Check
+# 🤖 AI Car Check
 
-**AI Car Check** is a smart and powerful Telegram bot that helps users in **Ireland** check vehicle history and estimate insurance and road tax based on registration number and car parameters.
+AI Car Check is a smart and helpful Telegram bot that allows users in Ireland 🇮🇪 to:
+- Check vehicle history by registration number (coming soon)
+- Estimate annual car insurance cost based on car and driver details
 
-It’s designed for drivers, buyers, and car owners who want quick insights before buying or insuring a vehicle.
+It offers a clean and simple experience through a Telegram chat interface with button-based interaction.
 
 ---
 
 ## ✨ Features
 
-- Check vehicle by **registration number** (accidents, NCT, owners, etc.)
-- Estimate **insurance cost** based on driver profile and car details
-- Estimate **Road Tax** using engine size, fuel type, and year
-- Telegram-based step-by-step flow with interactive buttons
-- Future support for real data via **MotorCheck API**, **data.gov.ie**, and **gov.ie**
+- Two main functions: vehicle check & insurance estimation
+- Insurance cost estimate based on public Irish market trends
+- Interactive question-based flow
+- Easy Telegram integration
 
 ---
 
-## 🧰 Tech Stack
+## 🚗 Insurance Estimation Logic
+
+The bot estimates annual insurance based on the following inputs:
+
+- **Driver Age**
+- **Driving Experience** (calculated from license year)
+- **Car Year**
+- **Engine Size (cc)**
+- **Fuel Type** (Petrol / Diesel / Electric / Hybrid)
+- **Number of Previous Owners**
+
+A simple weighted formula is used to simulate realistic insurance prices for Ireland. (This is **not** official data, but based on patterns from real quotes.)
+
+---
+
+## 📦 Tech Stack
 
 - `Python`
 - `python-telegram-bot`
-- `dotenv` (for environment variables)
-- `Render.com` for 24/7 deployment
-- *(optional in future)*: `MotorCheck API`, `data.gov.ie`, `gov.ie`
+- `dotenv` (for managing secret keys)
+- `Render.com` (for cloud deployment)
 
 ---
 
-## 🚀 Local Setup
+## 📍 Coming Soon
 
-```bash
-git clone https://github.com/ProninDenys/ai-car-check-bot.git
-cd ai-car-check-bot
-python -m venv venv
-source venv/bin/activate  
-pip install -r requirements.txt
+- Integration with official Irish vehicle APIs (e.g., MotorCheck)
+- Full registration number lookup with history, NCT, valuation
+- Real-time insurance quote from providers
+
+---
+
+## 📲 How to Use
+
+1. Open the bot on Telegram [@autocheckai_bot](https://t.me/autocheckai_bot)
+2. Tap `/start` to begin
+3. Choose between “Check Car by Reg Number” or “Estimate Insurance Cost”
+
+---
+
+🧠 This project is in MVP stage. More features coming soon!
