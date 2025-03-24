@@ -1,6 +1,5 @@
 import os
-import random
-from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
+from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 from dotenv import load_dotenv
 
@@ -9,94 +8,125 @@ load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 user_states = {}
 
-# ======== START COMMAND ========
+# ==== СТАРТ: Главное меню ====
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = [["Check Car by Reg Number"]]
+    keyboard = [["🚗 Estimate Insurance", "🔍 Check Car History (coming soon)"]]
     reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
     await update.message.reply_text(
-        "Welcome to AI Car Check — your smart auto agent in Ireland!\n\nTap the button below to start.",
+        "Welcome to AutoCheck AI!\n\nChoose a feature below to begin:",
         reply_markup=reply_markup
     )
     user_states[update.effective_user.id] = {"step": None}
 
-# ======== MESSAGE HANDLER ========
+# ==== ЛОГИКА ====
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     user_data = user_states.get(user_id, {})
     step = user_data.get("step")
-
     text = update.message.text
 
-    if text == "Check Car by Reg Number":
-        user_data["step"] = "reg"
-        await update.message.reply_text("Please enter the vehicle's registration number (e.g. 12D34567):")
+    if text == "🚗 Estimate Insurance":
+        user_data["step"] = "age"
+        await update.message.reply_text("1️⃣ Your age:")
         return
 
-    if step == "reg":
-        user_data["reg"] = text
-        user_data["step"] = "year"
-        await update.message.reply_text("Enter year of manufacture (e.g. 2015):")
-    elif step == "year":
-        user_data["year"] = text
-        user_data["step"] = "engine"
-        await update.message.reply_text("Enter engine size in cc (e.g. 1598):")
-    elif step == "engine":
-        user_data["engine"] = text
-        user_data["step"] = "mileage"
-        await update.message.reply_text("Enter mileage in km (e.g. 120000):")
-    elif step == "mileage":
-        user_data["mileage"] = text
-        user_data["step"] = "owners"
-        await update.message.reply_text("How many previous owners?:")
-    elif step == "owners":
-        user_data["owners"] = text
-        user_data["step"] = "fuel"
-        await update.message.reply_text("Enter fuel type (Petrol/Diesel/Electric):")
-    elif step == "fuel":
-        user_data["fuel"] = text
-        user_data["step"] = "driver_age"
-        await update.message.reply_text("Enter your age:")
-    elif step == "driver_age":
-        user_data["driver_age"] = text
+    elif text == "🔍 Check Car History (coming soon)":
+        await update.message.reply_text("⏳ This feature will be available soon.")
+        return
+
+    # ==== Сбор данных ====
+    if step == "age":
+        user_data["age"] = int(text)
         user_data["step"] = "license_year"
-        await update.message.reply_text("Year you got your driving license:")
+        await update.message.reply_text("2️⃣ What year did you get your driving license?")
     elif step == "license_year":
-        user_data["license_year"] = text
+        user_data["license_year"] = int(text)
+        user_data["step"] = "car_year"
+        await update.message.reply_text("3️⃣ Year of car manufacture:")
+    elif step == "car_year":
+        user_data["car_year"] = int(text)
+        user_data["step"] = "engine_size"
+        await update.message.reply_text("4️⃣ Engine size (in cc, e.g. 1600):")
+    elif step == "engine_size":
+        user_data["engine_size"] = int(text)
+        user_data["step"] = "fuel"
+        await update.message.reply_text("5️⃣ Fuel type (Petrol / Diesel / Electric):")
+    elif step == "fuel":
+        user_data["fuel"] = text.lower()
+        user_data["step"] = "owners"
+        await update.message.reply_text("6️⃣ How many previous owners?")
+    elif step == "owners":
+        user_data["owners"] = int(text)
 
-        # === FAKE REPORT (MVP STUB) ===
-        car_reg = user_data['reg']
-        fake_accidents = random.choice(["No accidents reported", "1 minor accident in 2019", "Multiple repairs after collision"])
-        owners = user_data['owners']
-        nct = random.choice(["Valid until Jan 2026", "Expired - needs retest", "Passed in Feb 2024"])
-        insurance_est = random.randint(750, 1800)
-        road_tax = random.randint(200, 600)
+        # ==== Расчёт страховки ====
+        base_price = 750
 
-        response = f"""
-🚗 Vehicle Report for {car_reg}:
+        # Возраст водителя
+        if user_data["age"] < 25:
+            base_price += 400
+        elif user_data["age"] < 30:
+            base_price += 200
+        else:
+            base_price += 100
 
-- Year: {user_data['year']}
-- Engine: {user_data['engine']}cc
-- Mileage: {user_data['mileage']} km
-- Fuel Type: {user_data['fuel']}
-- Previous Owners: {owners}
-- NCT Status: {nct}
-- Accident History: {fake_accidents}
+        # Опыт вождения
+        driving_years = 2025 - user_data["license_year"]
+        if driving_years < 3:
+            base_price += 300
+        elif driving_years < 5:
+            base_price += 150
+        else:
+            base_price -= 50
 
-💸 Estimated Insurance: €{insurance_est}/year
-🧾 Road Tax Estimate: €{road_tax}/year
+        # Возраст машины
+        car_age = 2025 - user_data["car_year"]
+        if car_age > 15:
+            base_price += 200
+        elif car_age > 10:
+            base_price += 100
 
-(This is a demo. Real API integration coming soon.)
-"""
-        await update.message.reply_text(response)
+        # Объём двигателя
+        if user_data["engine_size"] > 2000:
+            base_price += 200
+        elif user_data["engine_size"] > 1600:
+            base_price += 100
+
+        # Тип топлива
+        if user_data["fuel"] == "diesel":
+            base_price += 50
+        elif user_data["fuel"] == "electric":
+            base_price -= 100
+
+        # Кол-во владельцев
+        if user_data["owners"] >= 3:
+            base_price += 100
+
+        total = max(550, base_price)
+
+        await update.message.reply_text(f"""
+✅ Estimated Annual Insurance:
+
+• Driver Age: {user_data['age']}
+• Driving Experience: {driving_years} years
+• Car Year: {user_data['car_year']}
+• Engine: {user_data['engine_size']}cc
+• Fuel: {user_data['fuel'].capitalize()}
+• Owners: {user_data['owners']}
+
+💸 Estimated Insurance: €{total}/year
+
+(This is a simulated estimate based on public insurance trends.)
+""")
         user_states.pop(user_id, None)
-    else:
-        await update.message.reply_text("Please tap /start or use the menu to begin.")
 
-# ======== RUN APP ========
+    else:
+        await update.message.reply_text("Please click /start to begin or select an option from the menu.")
+
+# ==== ЗАПУСК ====
 app = ApplicationBuilder().token(BOT_TOKEN).build()
 app.add_handler(CommandHandler("start", start))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
-print("🚗 AI Car Check Bot is running...")
+print("🚗 AutoCheck bot is running...")
 app.run_polling()
