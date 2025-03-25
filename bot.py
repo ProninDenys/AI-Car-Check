@@ -51,7 +51,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if user_id not in user_states:
         user_states[user_id] = {"step": None}
 
-    keyboard = [["\U0001F697 Check Car by Reg Number"], ["\U0001F4C4 Estimate Insurance"], ["\U0001F504 Start Over"], ["\U0001F4D1 History"]]
+    keyboard = [["\U0001F697 Check Car by Reg Number"], ["\U0001F4C4 Estimate Insurance"],
+                ["\U0001F4A1 FAQ"], ["\U0001F504 Start Over"], ["\U0001F4D1 History"]]
     reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
     await update.message.reply_text("Welcome to AutoCheck AI!\n\nChoose a feature below to begin:", reply_markup=reply_markup)
@@ -69,6 +70,17 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             os.remove(pdf_path)
         else:
             await query.message.reply_text("PDF not found. Please calculate insurance first.")
+
+# === FAQ TEXT ===
+faq_data = {
+    "Learner Permit": "To get a Learner Permit in Ireland, you must complete the theory test, apply online at NDLS.ie, and provide proof of address, ID, and residency.",
+    "New Driver": "As a new driver, you must display 'L' plates, drive with a fully licensed driver if required, and follow beginner restrictions until fully licensed.",
+    "How to buy a car": "You can buy a car from a dealer or privately. Check the NCT, tax, ownership history, and always sign a contract with proof of payment.",
+    "Registration": "After buying a car, register it at motor tax office or online (for new imports). You'll need proof of ownership and identification.",
+    "Road Tax": "You can pay Road Tax online at motortax.ie using the vehicle registration number and PIN. The amount depends on engine size or CO2 emissions.",
+    "NCT": "NCT is Ireland's National Car Test. It's required every 1–2 years depending on the vehicle age. Book on ncts.ie.",
+    "Required Documents": "Typical documents for buying a car include Vehicle Registration Certificate (logbook), proof of ID, insurance, and roadworthiness certificates."
+}
 
 # === MESSAGE HANDLER ===
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -101,32 +113,41 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("No history found.")
         return
 
+    if text == "\U0001F4A1 FAQ":
+        keyboard = [[InlineKeyboardButton(topic, callback_data=topic)] for topic in faq_data]
+        keyboard.append([InlineKeyboardButton("Back to menu", callback_data="back_to_menu")])
+        await update.message.reply_text("Choose a topic:", reply_markup=InlineKeyboardMarkup(keyboard))
+        return
+
+    if step == "faq":
+        return
+
     if text == "\U0001F4C4 Estimate Insurance":
         user_data["step"] = "age"
-        await update.message.reply_text("1\uFE0F\u20E3 Your age:")
+        await update.message.reply_text("1️⃣ Your age:")
         return
 
     try:
         if step == "age":
             user_data["age"] = int(text)
             user_data["step"] = "license_year"
-            await update.message.reply_text("2\uFE0F\u20E3 What year did you get your driving license?")
+            await update.message.reply_text("2️⃣ What year did you get your driving license?")
         elif step == "license_year":
             user_data["license_year"] = int(text)
             user_data["step"] = "car_year"
-            await update.message.reply_text("3\uFE0F\u20E3 Car year (e.g. 2015):")
+            await update.message.reply_text("3️⃣ Car year (e.g. 2015):")
         elif step == "car_year":
             user_data["car_year"] = int(text)
             user_data["step"] = "engine"
-            await update.message.reply_text("4\uFE0F\u20E3 Engine size in cc (e.g. 1600):")
+            await update.message.reply_text("4️⃣ Engine size in cc (e.g. 1600):")
         elif step == "engine":
             user_data["engine"] = int(text)
             user_data["step"] = "fuel"
-            await update.message.reply_text("5\uFE0F\u20E3 Fuel type (Petrol / Diesel / Electric / Hybrid):")
+            await update.message.reply_text("5️⃣ Fuel type (Petrol / Diesel / Electric / Hybrid):")
         elif step == "fuel":
             user_data["fuel"] = text
             user_data["step"] = "owners"
-            await update.message.reply_text("6\uFE0F\u20E3 How many previous owners?")
+            await update.message.reply_text("6️⃣ How many previous owners?")
         elif step == "owners":
             user_data["owners"] = int(text)
 
@@ -188,11 +209,21 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except ValueError:
         await update.message.reply_text("❗ Please enter a valid number.")
 
+# === INLINE FAQ CALLBACK ===
+async def handle_faq_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    if query.data == "back_to_menu":
+        await start(update, context)
+    elif query.data in faq_data:
+        await query.message.reply_text(faq_data[query.data])
+
 # === APP INIT ===
 app = ApplicationBuilder().token(BOT_TOKEN).build()
 app.add_handler(CommandHandler("start", start))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 app.add_handler(CallbackQueryHandler(handle_callback))
+app.add_handler(CallbackQueryHandler(handle_faq_callback))
 
 print("AI Car Check Bot is running...")
 if sys.platform.startswith('win'):
