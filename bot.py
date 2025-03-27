@@ -74,12 +74,28 @@ def get_maintenance_recommendations(mileage):
     upcoming = [(km, task) for km, task in service_plan if km > mileage]
     return upcoming
 
+# === FAQ TEXT ===
+faq_data = {
+    "Learner Permit": "To get a Learner Permit in Ireland, you must complete the theory test, apply online at NDLS.ie, and provide proof of address, ID, and residency.",
+    "New Driver": "As a new driver, you must display 'L' plates, drive with a fully licensed driver if required, and follow beginner restrictions until fully licensed.",
+    "How to buy a car": "You can buy a car from a dealer or privately. Check the NCT, tax, ownership history, and always sign a contract with proof of payment.",
+    "Registration": "After buying a car, register it at motor tax office or online (for new imports). You'll need proof of ownership and identification.",
+    "Road Tax": "You can pay Road Tax online at motortax.ie using the vehicle registration number and PIN. The amount depends on engine size or CO2 emissions.",
+    "NCT": "NCT is Ireland's National Car Test. It's required every 1–2 years depending on the vehicle age. Book on ncts.ie.",
+    "Required Documents": "Typical documents for buying a car include Vehicle Registration Certificate (logbook), proof of ID, insurance, and roadworthiness certificates."
+}
+
 # === START ===
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     user_states[user_id] = {"step": None}
 
-    keyboard = [["\U0001F4C4 Estimate Insurance"], ["\U0001F527 Service & Maintenance"], ["\U0001F4D1 History"], ["\U0001F504 Start Over"]]
+    keyboard = [["\U0001F697 Check Car by Reg Number"],
+                ["\U0001F4C4 Estimate Insurance"],
+                ["\U0001F527 Service & Maintenance"],
+                ["\U0001F4D1 History"],
+                ["\U0001F4A1 FAQ"],
+                ["\U0001F504 Start Over"]]
     reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
     await update.message.reply_text("Welcome to AutoCheck AI!\n\nChoose a feature below to begin:", reply_markup=reply_markup)
 
@@ -96,6 +112,10 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             os.remove(pdf_path)
         else:
             await query.message.reply_text("PDF not found. Please calculate insurance first.")
+    elif query.data == "back_to_menu":
+        await start(update, context)
+    elif query.data in faq_data:
+        await query.message.reply_text(faq_data[query.data])
 
 # === MESSAGE HANDLER ===
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -126,6 +146,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(msg)
         else:
             await update.message.reply_text("No history found.")
+        return
+
+    if text == "\U0001F4A1 FAQ":
+        keyboard = [[InlineKeyboardButton(topic, callback_data=topic)] for topic in faq_data]
+        keyboard.append([InlineKeyboardButton("Back to menu", callback_data="back_to_menu")])
+        await update.message.reply_text("Choose a topic:", reply_markup=InlineKeyboardMarkup(keyboard))
         return
 
     if text == "\U0001F4C4 Estimate Insurance":
@@ -186,14 +212,15 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             conn.close()
 
             await update.message.reply_text(f"""
-\u2705 Estimated Annual Insurance:
+✅ Estimated Annual Insurance:
 • Driver Age: {age}
 • Driving Experience: {exp} years
 • Car Year: {car_year}
 • Engine: {engine}cc
 • Fuel: {fuel}
 • Owners: {owners}
-\n💸 Estimated Insurance: EUR {base}/year
+
+💸 Estimated Insurance: EUR {base}/year
 (This is a simulated estimate based on public insurance trends in Ireland.)
 """)
             pdf_filename = generate_pdf(user_id, user_data, base)
