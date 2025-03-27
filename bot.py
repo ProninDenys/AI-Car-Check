@@ -1,5 +1,4 @@
 import os
-import random
 import sqlite3
 import sys
 import asyncio
@@ -26,7 +25,7 @@ c.execute('''CREATE TABLE IF NOT EXISTS insurance_requests (
     owners INTEGER,
     estimate INTEGER
 )''')
-c.execute('''CREATE TABLE IF NOT EXISTS maintenance_requests (
+c.execute('''CREATE TABLE IF NOT EXISTS service_requests (
     user_id INTEGER,
     brand TEXT,
     model TEXT,
@@ -54,26 +53,9 @@ def generate_pdf(user_id, data, estimate):
     c.save()
     return filename
 
-# === FAQ TEXT ===
-faq_data = {
-    "Learner Permit": "To get a Learner Permit in Ireland, you must complete the theory test, apply online at NDLS.ie, and provide proof of address, ID, and residency.",
-    "New Driver": "As a new driver, you must display 'L' plates, drive with a fully licensed driver if required, and follow beginner restrictions until fully licensed.",
-    "How to buy a car": "You can buy a car from a dealer or privately. Check the NCT, tax, ownership history, and always sign a contract with proof of payment.",
-    "Registration": "After buying a car, register it at motor tax office or online (for new imports). You'll need proof of ownership and identification.",
-    "Road Tax": "You can pay Road Tax online at motortax.ie using the vehicle registration number and PIN. The amount depends on engine size or CO2 emissions.",
-    "NCT": "NCT is Ireland's National Car Test. It's required every 1–2 years depending on the vehicle age. Book on ncts.ie.",
-    "Required Documents": "Typical documents for buying a car include Vehicle Registration Certificate (logbook), proof of ID, insurance, and roadworthiness certificates."
-}
-
-# === SERVICE LOGIC ===
-def get_maintenance_report(brand, model, year, mileage, unit, fuel):
-    if unit.lower() == "miles":
-        mileage = round(mileage * 1.6)
-
-    past = []
-    upcoming = []
-
-    schedule = [
+# === SERVICE REPORT ===
+def get_maintenance_recommendations(mileage):
+    service_plan = [
         (15000, "Oil & Filter Change"),
         (30000, "Air Filter Change"),
         (60000, "Spark Plugs Replacement"),
@@ -89,20 +71,17 @@ def get_maintenance_report(brand, model, year, mileage, unit, fuel):
         (330000, "Timing Belt Inspection"),
         (360000, "Spark Plugs Replacement")
     ]
+    upcoming = [(km, task) for km, task in service_plan if km > mileage]
+    return upcoming
 
-    for km, task in schedule:
-        if mileage >= km:
-            past.append(f"✔️ {km:,} km — {task}")
-        else:
-            upcoming.append(f"⚠️ {km:,} km — {task}")
+# === START ===
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    user_states[user_id] = {"step": None}
 
-    report = f"🔧 Service Report for {brand} {model} ({year}), {mileage:,} km, {fuel.lower()}\n\n"
-    report += "📌 What should have been done:\n"
-    report += "\n".join(past) if past else "None"
-    report += "\n\n📍 Upcoming recommendations:\n"
-    report += "\n".join(upcoming) if upcoming else "None"
-
-    return report
+    keyboard = [["\U0001F4C4 Estimate Insurance"], ["\U0001F527 Service & Maintenance"], ["\U0001F4D1 History"], ["\U0001F504 Start Over"]]
+    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+    await update.message.reply_text("Welcome to AutoCheck AI!\n\nChoose a feature below to begin:", reply_markup=reply_markup)
 
 # === CALLBACK HANDLER ===
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -117,27 +96,6 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             os.remove(pdf_path)
         else:
             await query.message.reply_text("PDF not found. Please calculate insurance first.")
-    elif query.data == "back_to_menu":
-        await start(update, context)
-    elif query.data in faq_data:
-        await query.message.reply_text(faq_data[query.data])
-
-# === START ===
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    if user_id not in user_states:
-        user_states[user_id] = {"step": None}
-
-    keyboard = [["\U0001F697 Check Car by Reg Number"],
-                ["\U0001F4C4 Estimate Insurance"],
-                ["\U0001F4D1 Insurance History"],
-                ["\U0001F4DC Service History"],
-                ["\U0001F527 Service & Maintenance"],
-                ["\U0001F504 Start Over"],
-                ["\U0001F4A1 FAQ"]]
-    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
-
-    await update.message.reply_text("Welcome to AutoCheck AI!\n\nChoose a feature below to begin:", reply_markup=reply_markup)
 
 # === MESSAGE HANDLER ===
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -155,16 +113,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Restarted. Use /start to begin again.")
         return
 
-    if text == "\U0001F4A1 FAQ":
-        keyboard = [[InlineKeyboardButton(topic, callback_data=topic)] for topic in faq_data]
-        keyboard.append([InlineKeyboardButton("Back to menu", callback_data="back_to_menu")])
-        await update.message.reply_text("Choose a topic:", reply_markup=InlineKeyboardMarkup(keyboard))
-        return
-
-    if text == "\U0001F4D1 Insurance History":
+    if text == "\U0001F4D1 History":
         conn = sqlite3.connect("insurance.db")
         c = conn.cursor()
-        c.execute("SELECT age, license_year, car_year, engine, fuel, owners, estimate FROM insurance_requests WHERE user_id=? ORDER BY ROWID DESC LIMIT 5", (user_id,))
+        c.execute("SELECT age, license_year, car_year, engine, fuel, owners, estimate FROM insurance_requests WHERE user_id=? ORDER BY ROWID DESC LIMIT 3", (user_id,))
         rows = c.fetchall()
         conn.close()
         if rows:
@@ -176,62 +128,98 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("No history found.")
         return
 
-    if text == "\U0001F4DC Service History":
-        conn = sqlite3.connect("insurance.db")
-        c = conn.cursor()
-        c.execute("SELECT brand, model, year, mileage, unit, fuel FROM maintenance_requests WHERE user_id=? ORDER BY ROWID DESC LIMIT 3", (user_id,))
-        rows = c.fetchall()
-        conn.close()
-        if rows:
-            for r in rows:
-                report = get_maintenance_report(*r)
-                await update.message.reply_text(report)
-        else:
-            await update.message.reply_text("No service history found.")
+    if text == "\U0001F4C4 Estimate Insurance":
+        user_data["step"] = "age"
+        await update.message.reply_text("1\uFE0F\u20E3 Your age:")
         return
 
     if text == "\U0001F527 Service & Maintenance":
-        user_data["step"] = "brand"
-        await update.message.reply_text("Enter your car brand (e.g. Toyota):")
+        user_data["step"] = "mileage"
+        await update.message.reply_text("Enter your current mileage (only number):")
         return
 
-    if step == "brand":
-        user_data["brand"] = text
-        user_data["step"] = "model"
-        await update.message.reply_text("Enter your car model (e.g. Corolla):")
-    elif step == "model":
-        user_data["model"] = text
-        user_data["step"] = "year"
-        await update.message.reply_text("Enter year of manufacture (e.g. 2016):")
-    elif step == "year":
-        user_data["year"] = text
-        user_data["step"] = "mileage"
-        await update.message.reply_text("Enter current mileage (number only):")
-    elif step == "mileage":
-        user_data["mileage"] = int(text)
-        user_data["step"] = "unit"
-        await update.message.reply_text("Mileage unit: km or miles?")
-    elif step == "unit":
-        user_data["unit"] = text
-        user_data["step"] = "fuel"
-        await update.message.reply_text("Fuel type: Petrol / Diesel / Electric / Hybrid")
-    elif step == "fuel":
-        user_data["fuel"] = text
-        report = get_maintenance_report(user_data['brand'], user_data['model'], user_data['year'], user_data['mileage'], user_data['unit'], user_data['fuel'])
+    try:
+        if step == "age":
+            user_data["age"] = int(text)
+            user_data["step"] = "license_year"
+            await update.message.reply_text("2\uFE0F\u20E3 What year did you get your driving license?")
+        elif step == "license_year":
+            user_data["license_year"] = int(text)
+            user_data["step"] = "car_year"
+            await update.message.reply_text("3\uFE0F\u20E3 Car year (e.g. 2015):")
+        elif step == "car_year":
+            user_data["car_year"] = int(text)
+            user_data["step"] = "engine"
+            await update.message.reply_text("4\uFE0F\u20E3 Engine size in cc (e.g. 1600):")
+        elif step == "engine":
+            user_data["engine"] = int(text)
+            user_data["step"] = "fuel"
+            await update.message.reply_text("5\uFE0F\u20E3 Fuel type (Petrol / Diesel / Electric / Hybrid):")
+        elif step == "fuel":
+            user_data["fuel"] = text
+            user_data["step"] = "owners"
+            await update.message.reply_text("6\uFE0F\u20E3 How many previous owners?")
+        elif step == "owners":
+            user_data["owners"] = int(text)
+            age = user_data['age']
+            exp = 2024 - user_data['license_year']
+            car_year = user_data['car_year']
+            engine = user_data['engine']
+            fuel = user_data['fuel']
+            owners = user_data['owners']
 
-        conn = sqlite3.connect("insurance.db")
-        c = conn.cursor()
-        c.execute("INSERT INTO maintenance_requests VALUES (?, ?, ?, ?, ?, ?, ?)",
-                  (user_id, user_data['brand'], user_data['model'], user_data['year'], user_data['mileage'], user_data['unit'], user_data['fuel']))
-        conn.commit()
-        conn.close()
+            base = 1000
+            if age < 25: base += 500
+            if exp < 2: base += 400
+            if engine > 1800: base += 250
+            if fuel.lower() == "diesel": base += 100
+            elif fuel.lower() == "electric": base -= 150
+            elif fuel.lower() == "hybrid": base -= 100
+            if owners > 3: base += 200
+            if 2024 - car_year > 10: base += 150
 
-        await update.message.reply_text(report)
-        user_states[user_id]["step"] = None
-    else:
-        await update.message.reply_text("Please select an option from the menu using /start.")
+            conn = sqlite3.connect("insurance.db")
+            c = conn.cursor()
+            c.execute("INSERT INTO insurance_requests VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                      (user_id, age, user_data['license_year'], car_year, engine, fuel, owners, base))
+            conn.commit()
+            conn.close()
 
-# === INIT ===
+            await update.message.reply_text(f"""
+\u2705 Estimated Annual Insurance:
+• Driver Age: {age}
+• Driving Experience: {exp} years
+• Car Year: {car_year}
+• Engine: {engine}cc
+• Fuel: {fuel}
+• Owners: {owners}
+\n💸 Estimated Insurance: EUR {base}/year
+(This is a simulated estimate based on public insurance trends in Ireland.)
+""")
+            pdf_filename = generate_pdf(user_id, user_data, base)
+            keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("\U0001F4C4 Download PDF", callback_data="download_pdf")]])
+            await update.message.reply_text("You can also download the result as a PDF:", reply_markup=keyboard)
+            user_states[user_id]["step"] = None
+
+        elif step == "mileage":
+            mileage = int(text)
+            upcoming = get_maintenance_recommendations(mileage)
+            report = f"\n🔧 Maintenance Report — Upcoming After {mileage} km\n\n"
+            if upcoming:
+                for km, task in upcoming:
+                    report += f"⚠️ {km} km — {task}\n"
+            else:
+                report += "No further maintenance needed."
+            await update.message.reply_text(report)
+            user_states[user_id]["step"] = None
+
+        else:
+            await update.message.reply_text("Please select an option from the menu using /start.")
+
+    except ValueError:
+        await update.message.reply_text("❗ Please enter a valid number.")
+
+# === APP INIT ===
 app = ApplicationBuilder().token(BOT_TOKEN).build()
 app.add_handler(CommandHandler("start", start))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
