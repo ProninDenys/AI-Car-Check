@@ -74,17 +74,6 @@ def get_maintenance_recommendations(mileage):
     upcoming = [(km, task) for km, task in service_plan if km > mileage]
     return upcoming
 
-# === FAQ TEXT ===
-faq_data = {
-    "Learner Permit": "To get a Learner Permit in Ireland, you must complete the theory test, apply online at NDLS.ie, and provide proof of address, ID, and residency.",
-    "New Driver": "As a new driver, you must display 'L' plates, drive with a fully licensed driver if required, and follow beginner restrictions until fully licensed.",
-    "How to buy a car": "You can buy a car from a dealer or privately. Check the NCT, tax, ownership history, and always sign a contract with proof of payment.",
-    "Registration": "After buying a car, register it at motor tax office or online (for new imports). You'll need proof of ownership and identification.",
-    "Road Tax": "You can pay Road Tax online at motortax.ie using the vehicle registration number and PIN. The amount depends on engine size or CO2 emissions.",
-    "NCT": "NCT is Ireland's National Car Test. It's required every 1–2 years depending on the vehicle age. Book on ncts.ie.",
-    "Required Documents": "Typical documents for buying a car include Vehicle Registration Certificate (logbook), proof of ID, insurance, and roadworthiness certificates."
-}
-
 # === START ===
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -112,10 +101,6 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             os.remove(pdf_path)
         else:
             await query.message.reply_text("PDF not found. Please calculate insurance first.")
-    elif query.data == "back_to_menu":
-        await start(update, context)
-    elif query.data in faq_data:
-        await query.message.reply_text(faq_data[query.data])
 
 # === MESSAGE HANDLER ===
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -148,20 +133,18 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("No history found.")
         return
 
-    if text == "\U0001F4A1 FAQ":
-        keyboard = [[InlineKeyboardButton(topic, callback_data=topic)] for topic in faq_data]
-        keyboard.append([InlineKeyboardButton("Back to menu", callback_data="back_to_menu")])
-        await update.message.reply_text("Choose a topic:", reply_markup=InlineKeyboardMarkup(keyboard))
-        return
-
     if text == "\U0001F4C4 Estimate Insurance":
         user_data["step"] = "age"
         await update.message.reply_text("1\uFE0F\u20E3 Your age:")
         return
 
     if text == "\U0001F527 Service & Maintenance":
-        user_data["step"] = "mileage"
-        await update.message.reply_text("Enter your current mileage (only number):")
+        user_data["step"] = "brand"
+        await update.message.reply_text("Enter your car brand (e.g. Toyota):")
+        return
+
+    if text == "\U0001F4A1 FAQ":
+        await update.message.reply_text("\uD83D\uDCA1 Visit motortax.ie or ndls.ie for all official driver info in Ireland. More coming soon!")
         return
 
     try:
@@ -212,15 +195,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             conn.close()
 
             await update.message.reply_text(f"""
-✅ Estimated Annual Insurance:
+\u2705 Estimated Annual Insurance:
 • Driver Age: {age}
 • Driving Experience: {exp} years
 • Car Year: {car_year}
 • Engine: {engine}cc
 • Fuel: {fuel}
 • Owners: {owners}
-
-💸 Estimated Insurance: EUR {base}/year
+\n\U0001F4B8 Estimated Insurance: EUR {base}/year
 (This is a simulated estimate based on public insurance trends in Ireland.)
 """)
             pdf_filename = generate_pdf(user_id, user_data, base)
@@ -228,23 +210,37 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("You can also download the result as a PDF:", reply_markup=keyboard)
             user_states[user_id]["step"] = None
 
+        elif step == "brand":
+            user_data["brand"] = text
+            user_data["step"] = "model"
+            await update.message.reply_text("Enter model (e.g. Corolla):")
+        elif step == "model":
+            user_data["model"] = text
+            user_data["step"] = "year"
+            await update.message.reply_text("Year of manufacture (e.g. 2015):")
+        elif step == "year":
+            user_data["year"] = text
+            user_data["step"] = "mileage"
+            await update.message.reply_text("Enter current mileage:")
         elif step == "mileage":
-            mileage = int(text)
-            upcoming = get_maintenance_recommendations(mileage)
-            report = f"\n🔧 Maintenance Report — Upcoming After {mileage} km\n\n"
+            user_data["mileage"] = int(text)
+            user_data["step"] = "fuel"
+            await update.message.reply_text("Fuel type (Petrol / Diesel / Electric / Hybrid):")
+        elif step == "fuel":
+            user_data["fuel"] = text
+            upcoming = get_maintenance_recommendations(user_data['mileage'])
+            report = f"\n\U0001F527 Service Report for {user_data['brand']} {user_data['model']} ({user_data['year']}), {user_data['mileage']} km, {user_data['fuel']}\n\n"
+            report += "\U0001F4CC Upcoming recommendations:\n"
             if upcoming:
                 for km, task in upcoming:
-                    report += f"⚠️ {km} km — {task}\n"
+                    report += f"\u26A0\uFE0F {km} km — {task}\n"
             else:
-                report += "No further maintenance needed."
+                report += "None"
             await update.message.reply_text(report)
             user_states[user_id]["step"] = None
 
-        else:
-            await update.message.reply_text("Please select an option from the menu using /start.")
-
     except ValueError:
-        await update.message.reply_text("❗ Please enter a valid number.")
+        await update.message.reply_text("\u2757 Please enter a valid number.")
 
 # === APP INIT ===
 app = ApplicationBuilder().token(BOT_TOKEN).build()
