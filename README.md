@@ -1,19 +1,23 @@
 # 🤖 AI Car Check
 
-AI Car Check is a smart and helpful Telegram bot that allows users in Ireland 🇮🇪 to:
-- Check vehicle history by registration number (coming soon)
-- Estimate annual car insurance cost based on car and driver details
+AI Car Check is a smart and helpful Telegram bot designed for drivers in Ireland 🇮🇪. It helps with:
+- Estimating car insurance costs
+- Tracking and planning vehicle maintenance
+- Providing key information for new drivers, car buyers, and car owners
+- (Coming soon) Checking vehicle history by registration number
 
-It offers a clean and simple experience through a Telegram chat interface with button-based interaction.
+It offers a clean and simple experience through a Telegram chat interface with intuitive button-based interaction.
 
 ---
 
 ## ✨ Features
 
-- Two main functions: vehicle check & insurance estimation
-- Insurance cost estimate based on public Irish market trends
-- Interactive question-based flow
-- Easy Telegram integration
+- 🚗 **Estimate Insurance**: Get an approximate annual insurance cost based on car and driver details
+- 🛠 **Service & Maintenance**: Get upcoming maintenance reminders based on mileage
+- 🧾 **Insurance & Service History**: See the last 3 calculations and reports
+- 📚 **FAQ**: Useful legal and practical info for motorists in Ireland
+- 🔄 Restart conversation easily with a button
+- ✅ PDF insurance report download
 
 ---
 
@@ -22,13 +26,25 @@ It offers a clean and simple experience through a Telegram chat interface with b
 The bot estimates annual insurance based on the following inputs:
 
 - **Driver Age**
-- **Driving Experience** (calculated from license year)
+- **Driving Experience** (from license year)
 - **Car Year**
 - **Engine Size (cc)**
 - **Fuel Type** (Petrol / Diesel / Electric / Hybrid)
 - **Number of Previous Owners**
 
-A simple weighted formula is used to simulate realistic insurance prices for Ireland. (This is **not** official data, but based on patterns from real quotes.)
+A weighted formula simulates Irish market pricing for educational use only (not official quotes).
+
+---
+
+## 🛠 Maintenance Logic
+
+The user inputs:
+- **Car brand & model**
+- **Year of manufacture**
+- **Current mileage** (km or miles)
+- **Fuel type**
+
+The bot shows only upcoming recommendations based on standard service schedules (oil change, timing belt, etc.).
 
 ---
 
@@ -36,25 +52,25 @@ A simple weighted formula is used to simulate realistic insurance prices for Ire
 
 - `Python`
 - `python-telegram-bot`
-- `dotenv` (for managing secret keys)
-- `Render.com` (for cloud deployment)
-
----
-
-## 📍 Coming Soon
-
-- Integration with official Irish vehicle APIs (e.g., MotorCheck)
-- Full registration number lookup with history, NCT, valuation
-- Real-time insurance quote from providers
+- `SQLite` (for user history)
+- `dotenv` (env vars)
+- `Render.com` (cloud deployment)
+- `ReportLab` (PDF generation)
 
 ---
 
 ## 📲 How to Use
 
-1. Open the bot on Telegram [@autocheckai_bot](https://t.me/autocheckai_bot)
+1. Open the bot on Telegram: [@autocheckai_bot](https://t.me/autocheckai_bot)
 2. Tap `/start` to begin
-3. Choose between “Check Car by Reg Number” or “Estimate Insurance Cost”
+3. Choose:
+   - "🚗 Check Car by Reg Number" (coming soon)
+   - "📄 Estimate Insurance"
+   - "🛠 Service & Maintenance"
+   - "📚 FAQ" for car-related info in Ireland
 
 ---
 
-🧠 This project is in MVP stage. More features coming soon!
+## 🧠 Status
+
+This is an MVP project actively evolving with user feedback. API integration and expanded features coming soon.
