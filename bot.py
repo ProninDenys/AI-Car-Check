@@ -70,23 +70,37 @@ def get_maintenance_report(brand, model, year, mileage, unit, fuel):
     if unit.lower() == "miles":
         mileage = round(mileage * 1.6)
 
-    checklist = [
-        (15000, "Oil & Filter Change (every 10–15k km)"),
+    past = []
+    upcoming = []
+
+    schedule = [
+        (15000, "Oil & Filter Change"),
         (30000, "Air Filter Change"),
         (60000, "Spark Plugs Replacement"),
         (90000, "Timing Belt Inspection"),
         (120000, "Spark Plugs Replacement again"),
         (150000, "Suspension & Steering Inspection"),
         (180000, "Timing Belt Check"),
-        (180000, "Spark Plugs again")
+        (180000, "Spark Plugs again"),
+        (210000, "Air Filter Change"),
+        (240000, "Spark Plugs Replacement again"),
+        (270000, "Timing Belt Inspection"),
+        (300000, "Oil & Filter Change"),
+        (330000, "Timing Belt Inspection"),
+        (360000, "Spark Plugs Replacement")
     ]
 
-    past = [desc for km, desc in checklist if mileage >= km]
-    upcoming = [f"{km} km: {desc}" for km, desc in checklist if mileage < km]
+    for km, task in schedule:
+        if mileage >= km:
+            past.append(f"✔️ {km:,} km — {task}")
+        else:
+            upcoming.append(f"⚠️ {km:,} km — {task}")
 
-    report = f"\n🔧 Service Report for {brand} {model} ({year}), {mileage} km, {fuel}\n\n"
-    report += "📌 What should have been done:\n" + ("\n".join(f"✔️ {item}" for item in past) if past else "None") + "\n\n"
-    report += "📍 Upcoming recommendations:\n" + ("\n".join(f"📃 {item}" for item in upcoming) if upcoming else "None")
+    report = f"🔧 Service Report for {brand} {model} ({year}), {mileage:,} km, {fuel.lower()}\n\n"
+    report += "📌 What should have been done:\n"
+    report += "\n".join(past) if past else "None"
+    report += "\n\n📍 Upcoming recommendations:\n"
+    report += "\n".join(upcoming) if upcoming else "None"
 
     return report
 
