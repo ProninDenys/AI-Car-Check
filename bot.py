@@ -176,7 +176,6 @@ def get_maintenance_recommendations(mileage, fuel):
 
     return report
 
-
 # === MESSAGE HANDLER ===
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -190,7 +189,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if text == "\U0001F504 Start Over":
         user_states[user_id] = {"step": None}
-        await update.message.reply_text("Restarted.", reply_markup=get_main_menu())
+        await update.message.reply_text("Restarted.", reply_markup=get_main_menu())  # Ensure to send the main menu
         return
 
     if text == "\U0001F4A1 FAQ":
