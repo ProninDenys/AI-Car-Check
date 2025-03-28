@@ -186,10 +186,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_data = user_states[user_id]
     step = user_data.get("step")
 
-    if text == "\U0001F4A1 FAQ":
-        keyboard = [[InlineKeyboardButton(topic, callback_data=topic)] for topic in faq_data]
-        await update.message.reply_text("Choose a topic:", reply_markup=InlineKeyboardMarkup(keyboard))
-        return
+    if text == "\U0001F504 Start Over":
+      user_states[user_id] = {"step": None}
+    await update.message.reply_text("Restarted.", reply_markup=get_main_menu())
+    return
 
     if text == "\U0001F4D1 Insurance History":
         conn = sqlite3.connect("insurance.db")
