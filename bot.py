@@ -54,6 +54,28 @@ def generate_pdf(user_id, data, estimate):
     c.save()
     return filename
 
+# === FAQ TEXT ===
+faq_data = {
+    "Learner Permit": "To get a Learner Permit in Ireland, you must complete the theory test, apply online at NDLS.ie, and provide proof of address, ID, and residency.",
+    "New Driver": "As a new driver, you must display 'L' plates, drive with a fully licensed driver if required, and follow beginner restrictions until fully licensed.",
+    "How to buy a car": "You can buy a car from a dealer or privately. Check the NCT, tax, ownership history, and always sign a contract with proof of payment.",
+    "Registration": "After buying a car, register it at motor tax office or online (for new imports). You'll need proof of ownership and identification.",
+    "Road Tax": "You can pay Road Tax online at motortax.ie using the vehicle registration number and PIN. The amount depends on engine size or CO2 emissions.",
+    "NCT": "NCT is Ireland's National Car Test. It's required every 1–2 years depending on the vehicle age. Book on ncts.ie.",
+    "Required Documents": "Typical documents for buying a car include Vehicle Registration Certificate (logbook), proof of ID, insurance, and roadworthiness certificates."
+}
+
+# === MENU FUNCTION ===
+def get_main_menu():
+    keyboard = [["\U0001F697 Check Car by Reg Number"],
+                ["\U0001F4C4 Estimate Insurance"],
+                ["\U0001F4D1 Insurance History"],
+                ["\U0001F4DC Service History"],
+                ["\U0001F527 Service & Maintenance"],
+                ["\U0001F504 Start Over"],
+                ["\U0001F4A1 FAQ"]]
+    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+
 # === MAINTENANCE REPORT ===
 def get_maintenance_recommendations(mileage):
     checklist = [
@@ -74,6 +96,32 @@ def get_maintenance_recommendations(mileage):
     ]
     return [(km, task) for km, task in checklist if km > mileage]
 
+# === SERVICE LOGIC ===
+def get_maintenance_report(brand, model, year, mileage, unit, fuel):
+    if unit.lower() == "miles":
+        mileage = round(mileage * 1.6)
+
+    checklist = [
+        (15000, "Oil & Filter Change (every 10–15k km)"),
+        (30000, "Air Filter Change"),
+        (60000, "Spark Plugs Replacement"),
+        (90000, "Timing Belt Inspection"),
+        (120000, "Spark Plugs Replacement again"),
+        (150000, "Suspension & Steering Inspection"),
+        (180000, "Timing Belt Check"),
+        (180000, "Spark Plugs again")
+    ]
+
+    past = [desc for km, desc in checklist if mileage >= km]
+    upcoming = [f"{km} km: {desc}" for km, desc in checklist if mileage < km]
+
+    report = f"\n\U0001F527 Service Report for {brand} {model} ({year}), {mileage} km, {fuel}\n\n"
+    report += "\U0001F4CC What should have been done:\n" + ("\n".join(f"\u2714\ufe0f {item}" for item in past) if past else "None") + "\n\n"
+    report += "\U0001F4CD Upcoming recommendations:\n" + ("\n".join(f"\U0001F4C3 {item}" for item in upcoming) if upcoming else "None")
+
+    return report
+
+
 # === CALLBACK HANDLER ===
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -87,18 +135,16 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             os.remove(pdf_path)
         else:
             await query.message.reply_text("PDF not found. Please calculate insurance first.")
+    elif query.data == "back_to_menu":
+        await update.callback_query.message.reply_text("Returning to menu...", reply_markup=get_main_menu())
+    elif query.data in faq_data:
+        await query.message.reply_text(faq_data[query.data], reply_markup=get_main_menu())
 
 # === START ===
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     user_states[user_id] = {"step": None}
-    keyboard = [["\U0001F4C4 Estimate Insurance"],
-                ["\U0001F527 Service & Maintenance"],
-                ["\U0001F4D1 Insurance History"],
-                ["\U0001F4DC Service History"],
-                ["\U0001F504 Start Over"]]
-    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
-    await update.message.reply_text("Welcome to AutoCheck AI!\n\nChoose a feature below to begin:", reply_markup=reply_markup)
+    await update.message.reply_text("Welcome to AutoCheck AI!\n\nChoose a feature below to begin:", reply_markup=get_main_menu())
 
 # === MESSAGE HANDLER ===
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
