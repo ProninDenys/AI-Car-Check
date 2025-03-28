@@ -195,7 +195,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if text == "\U0001F4A1 FAQ":
         keyboard = [[InlineKeyboardButton(topic, callback_data=topic)] for topic in faq_data]
-        keyboard.append([InlineKeyboardButton("Back to menu", callback_data="back_to_menu")])
         await update.message.reply_text("Choose a topic:", reply_markup=InlineKeyboardMarkup(keyboard))
         return
 
@@ -224,7 +223,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             for r in rows:
                 brand, model, year, mileage, unit, fuel = r
                 if unit.lower() == "miles":
-                    # Convert mileage from miles to kilometers
                     mileage = round(mileage * 1.60934)
                 recommendations = get_maintenance_recommendations(mileage, fuel)
                 report = f"\n🔧 {brand} {model} ({year}) — {mileage} km — {fuel}\n"
@@ -326,7 +324,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("Enter mileage:")
         elif step == "mileage":
             try:
-                mileage = float(text.replace(",", ""))  # заменим запятые, если они есть
+                mileage = float(text.replace(",", ""))  # replace commas if present
                 user_data["mileage"] = mileage
                 user_data["step"] = "unit"
                 await update.message.reply_text("Mileage unit: km or miles?")
@@ -366,10 +364,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         report += "\n✅ No upcoming maintenance needed."
 
-        # Add maintenance report to PDF
+    # Add maintenance report to PDF
     pdf_filename = generate_pdf(user_id, user_data, base, report)
     keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("\U0001F4C4 Download PDF", callback_data="download_pdf")]])
-   
 
 # === INIT ===
 app = ApplicationBuilder().token(BOT_TOKEN).build()
