@@ -38,7 +38,7 @@ conn.commit()
 conn.close()
 
 # === PDF GENERATION ===
-def generate_pdf(user_id, data, estimate):
+def generate_pdf(user_id, data, estimate, maintenance_report=None):
     filename = f"insurance_estimate_{user_id}.pdf"
     c = canvas.Canvas(filename)
     c.setFont("Helvetica", 12)
@@ -50,6 +50,11 @@ def generate_pdf(user_id, data, estimate):
     c.drawString(100, 690, f"Fuel: {data['fuel']}")
     c.drawString(100, 670, f"Owners: {data['owners']}")
     c.drawString(100, 640, f"Estimated Insurance: EUR {estimate}/year")
+    
+    if maintenance_report:
+        c.drawString(100, 620, "Maintenance Report:")
+        c.drawString(100, 600, maintenance_report)
+    
     c.save()
     return filename
 
@@ -99,13 +104,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_states[user_id] = {"step": None}
     await update.message.reply_text("Welcome to AutoCheck AI!\n\nChoose a feature below to begin:", reply_markup=get_main_menu())
 
-# === MAINTENANCE LOGIC ===
-def get_maintenance_report(brand, model, year, mileage, unit, fuel):
-    if unit.lower() == "miles":
-        mileage = round(mileage * 1.60934)
-
-    checklist = [
-        (15000, "Oil & Filter Change"),
+# === MAINTENANCE RECOMMENDATIONS ===
+def get_maintenance_recommendations(mileage, fuel):
+    checklist = [(km, "Oil & Filter Change") for km in range(10000, 700001, 10000)] + [
         (30000, "Air Filter Replacement"),
         (45000, "Brake Pads Check"),
         (60000, "Spark Plugs Replacement"),
@@ -113,7 +114,7 @@ def get_maintenance_report(brand, model, year, mileage, unit, fuel):
         (90000, "Timing Belt Inspection"),
         (105000, "Brake Fluid Replacement"),
         (120000, "Spark Plugs Replacement Again"),
-        (135000, "Fuel Filter Replacement (for Diesel)"),
+        (135000, "Fuel Filter Replacement (Diesel Only)"),
         (150000, "Suspension & Steering Inspection"),
         (165000, "Transmission Fluid Change"),
         (180000, "Timing Belt Replacement"),
@@ -124,28 +125,27 @@ def get_maintenance_report(brand, model, year, mileage, unit, fuel):
         (255000, "Oil & Filter Change"),
         (270000, "Timing Belt Inspection"),
         (285000, "EGR Valve Cleaning (Diesel)"),
-        (300000, "Full Inspection & Emission Check"),
+        (300000, "Full Inspection & Emission Check")
     ]
 
-    # Разделим задачи по пробегу
     past = [(km, task) for km, task in checklist if mileage >= km]
     upcoming = [(km, task) for km, task in checklist if mileage < km]
 
-    report = f"🔧 <b>Maintenance for {brand.title()} {model.title()} ({year})</b> — <b>{mileage:,} km</b>, {fuel.lower()}\n\n"
+    report = f"🔧 Maintenance for {fuel} — {mileage} km\n\n"
 
     if past:
-        report += "📌 <b>What should have already been done:</b>\n"
+        report += "📌 What should have already been done:\n"
         for km, task in past[-5:]:
-            report += f"✔️ <code>{km:,} km</code> — {task}\n"
+            report += f"✔️ {km} km — {task}\n"
     else:
-        report += "📌 <b>No maintenance history found.</b>\n"
+        report += "📌 No maintenance history found.\n"
 
-    report += "\n📍 <b>Upcoming recommendations:</b>\n"
+    report += "\n📍 Upcoming recommendations:\n"
     if upcoming:
         for km, task in upcoming[:5]:
-            report += f"⚠️ <code>{km:,} km</code> — {task}\n"
+            report += f"⚠️ {km} km — {task}\n"
     else:
-        report += "✅ No upcoming maintenance needed.\n"
+        report += "✅ No upcoming maintenance needed."
 
     return report
 
@@ -197,12 +197,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 brand, model, year, mileage, unit, fuel = r
                 if unit.lower() == "miles":
                     mileage = round(mileage * 1.6)
-                recommendations = get_maintenance_recommendations(mileage)
-                report = f"\n\U0001F527 {brand} {model} ({year}) — {mileage} km — {fuel}\n"
+                recommendations = get_maintenance_recommendations(mileage, fuel)
+                report = f"\n🔧 {brand} {model} ({year}) — {mileage} km — {fuel}\n"
                 if recommendations:
-                    report += "\n\U0001F4CD Upcoming recommendations:\n"
+                    report += "\n📍 Upcoming recommendations:\n"
                     for km, task in recommendations:
-                        report += f"\u26A0\uFE0F {km} km — {task}\n"
+                        report += f"⚠️ {km} km — {task}\n"
                 else:
                     report += "\n✅ No further maintenance needed."
                 await update.message.reply_text(report)
@@ -322,7 +322,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             conn.commit()
             conn.close()
 
-            recommendations = get_maintenance_recommendations(mileage)
+            recommendations = get_maintenance_recommendations(mileage, fuel)
             report = f"\n🔧 Maintenance for {brand} {model} ({year}) — {mileage} km, {fuel}\n"
             if recommendations:
                 report += "\n📍 Upcoming recommendations:\n"
