@@ -100,19 +100,54 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Welcome to AutoCheck AI!\n\nChoose a feature below to begin:", reply_markup=get_main_menu())
 
 # === MAINTENANCE LOGIC ===
-def get_maintenance_recommendations(mileage):
+def get_maintenance_report(brand, model, year, mileage, unit, fuel):
+    if unit.lower() == "miles":
+        mileage = round(mileage * 1.60934)
+
     checklist = [
         (15000, "Oil & Filter Change"),
-        (30000, "Air Filter Change"),
+        (30000, "Air Filter Replacement"),
+        (45000, "Brake Pads Check"),
         (60000, "Spark Plugs Replacement"),
+        (75000, "Coolant Level & Battery Check"),
         (90000, "Timing Belt Inspection"),
-        (120000, "Spark Plugs Replacement again"),
+        (105000, "Brake Fluid Replacement"),
+        (120000, "Spark Plugs Replacement Again"),
+        (135000, "Fuel Filter Replacement (for Diesel)"),
         (150000, "Suspension & Steering Inspection"),
-        (180000, "Timing Belt Check"),
-        (210000, "Air Filter Change"),
-        (240000, "Spark Plugs Replacement again")
+        (165000, "Transmission Fluid Change"),
+        (180000, "Timing Belt Replacement"),
+        (195000, "Brake Discs Check"),
+        (210000, "Air Filter Replacement"),
+        (225000, "Spark Plugs Replacement"),
+        (240000, "Engine Mounts Inspection"),
+        (255000, "Oil & Filter Change"),
+        (270000, "Timing Belt Inspection"),
+        (285000, "EGR Valve Cleaning (Diesel)"),
+        (300000, "Full Inspection & Emission Check"),
     ]
-    return [(km, task) for km, task in checklist if km > mileage]
+
+    # Разделим задачи по пробегу
+    past = [(km, task) for km, task in checklist if mileage >= km]
+    upcoming = [(km, task) for km, task in checklist if mileage < km]
+
+    report = f"🔧 <b>Maintenance for {brand.title()} {model.title()} ({year})</b> — <b>{mileage:,} km</b>, {fuel.lower()}\n\n"
+
+    if past:
+        report += "📌 <b>What should have already been done:</b>\n"
+        for km, task in past[-5:]:
+            report += f"✔️ <code>{km:,} km</code> — {task}\n"
+    else:
+        report += "📌 <b>No maintenance history found.</b>\n"
+
+    report += "\n📍 <b>Upcoming recommendations:</b>\n"
+    if upcoming:
+        for km, task in upcoming[:5]:
+            report += f"⚠️ <code>{km:,} km</code> — {task}\n"
+    else:
+        report += "✅ No upcoming maintenance needed.\n"
+
+    return report
 
 # === MESSAGE HANDLER ===
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
