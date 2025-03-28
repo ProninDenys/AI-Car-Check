@@ -223,7 +223,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             for r in rows:
                 brand, model, year, mileage, unit, fuel = r
                 if unit.lower() == "miles":
-                    mileage = round(mileage * 1.6)
+                    # Convert mileage from miles to kilometers
+                    mileage = round(mileage * 1.60934)
                 recommendations = get_maintenance_recommendations(mileage, fuel)
                 report = f"\n🔧 {brand} {model} ({year}) — {mileage} km — {fuel}\n"
                 if recommendations:
@@ -339,8 +340,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             unit = user_data['unit']
             fuel = user_data['fuel']
 
+            # Convert mileage if unit is miles
             if unit.lower() == "miles":
-                mileage = round(mileage * 1.6)
+                mileage = round(mileage * 1.60934)
 
             conn = sqlite3.connect("insurance.db")
             c = conn.cursor()
@@ -358,7 +360,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             else:
                 report += "\n✅ No upcoming maintenance needed."
 
-            await update.message.reply_text(report)
+            # Add maintenance report to PDF
+            pdf_filename = generate_pdf(user_id, user_data, base, report)
+            keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("\U0001F4C4 Download PDF", callback_data="download_pdf")]])
+            await update.message.reply_text(report, reply_markup=keyboard)
             user_states[user_id]["step"] = None
 
     except ValueError:
