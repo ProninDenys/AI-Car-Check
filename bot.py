@@ -71,13 +71,14 @@ faq_data = {
 
 # === MENU ===
 def get_main_menu():
-    keyboard = [["\U0001F697 Check Car by Reg Number"],
-                ["\U0001F4C4 Estimate Insurance"],
-                ["\U0001F527 Service & Maintenance"],
-                ["\U0001F4D1 Insurance History"],
-                ["\U0001F4DC Service History"],
-                ["\U0001F504 Start Over"],
-                ["\U0001F4A1 FAQ"]]
+    keyboard = [
+        ["\U0001F697 Check Car by Reg Number"],
+        ["\U0001F4C4 Estimate Insurance"],
+        ["\U0001F527 Service & Maintenance"],
+        ["\U0001F4D1 Insurance History"],
+        ["\U0001F4DC Service History"],
+        ["\U0001F4A1 FAQ"]
+    ]
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
 # === CALLBACKS ===
@@ -93,8 +94,6 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             os.remove(pdf_path)
         else:
             await query.message.reply_text("PDF not found. Please calculate insurance first.")
-    elif query.data == "back_to_menu":
-        await query.message.reply_text("Returning to menu...", reply_markup=get_main_menu())
     elif query.data in faq_data:
         await query.message.reply_text(faq_data[query.data], reply_markup=get_main_menu())
 
@@ -107,53 +106,53 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # === MAINTENANCE RECOMMENDATIONS ===
 def get_maintenance_recommendations(mileage, fuel):
     checklist = [
-    (10000, "Oil & Filter Change"),
-    (30000, "Air Filter Replacement"),
-    (45000, "Brake Pads Check"),
-    (60000, "Spark Plugs Replacement"),
-    (75000, "Coolant Level & Battery Check"),
-    (90000, "Timing Belt Inspection"),
-    (105000, "Brake Fluid Replacement"),
-    (120000, "Spark Plugs Replacement Again"),
-    (135000, "Fuel Filter Replacement (for Diesel)"),
-    (150000, "Suspension & Steering Inspection"),
-    (165000, "Transmission Fluid Change"),
-    (180000, "Timing Belt Replacement"),
-    (195000, "Brake Discs Check"),
-    (210000, "Air Filter Replacement"),
-    (225000, "Spark Plugs Replacement"),
-    (240000, "Engine Mounts Inspection"),
-    (255000, "Oil & Filter Change"),
-    (270000, "Timing Belt Inspection"),
-    (285000, "EGR Valve Cleaning (Diesel)"),
-    (300000, "Full Inspection & Emission Check"),
-    (315000, "Suspension Check"),
-    (330000, "Brake Fluid Inspection"),
-    (345000, "Spark Plugs Cleaning (for Diesel)"),
-    (360000, "Full Inspection & Emission Check"),
-    (375000, "Timing Belt Change (Check Condition)"),
-    (390000, "Alternator Check"),
-    (405000, "Transmission Fluid Check"),
-    (420000, "Coolant Flush"),
-    (435000, "Oil & Filter Change"),
-    (450000, "Tire Change and Alignment"),
-    (465000, "Full Service Inspection"),
-    (480000, "Timing Belt Change"),
-    (495000, "Suspension & Steering Check"),
-    (510000, "EGR Valve Cleaning (Diesel)"),
-    (525000, "Full Check-up"),
-    (540000, "Brake Fluid Check"),
-    (555000, "Engine Mount Inspection"),
-    (570000, "Timing Belt Inspection"),
-    (585000, "Oil & Filter Change"),
-    (600000, "Full Service Inspection"),
-    (615000, "Brake Pad Replacement"),
-    (630000, "Spark Plugs Cleaning"),
-    (645000, "Coolant Flush"),
-    (660000, "Transmission Fluid Check"),
-    (675000, "Full Inspection & Emission Check"),
-    (690000, "Engine Check and Service"),
-]
+        (10000, "Oil & Filter Change"),
+        (30000, "Air Filter Replacement"),
+        (45000, "Brake Pads Check"),
+        (60000, "Spark Plugs Replacement"),
+        (75000, "Coolant Level & Battery Check"),
+        (90000, "Timing Belt Inspection"),
+        (105000, "Brake Fluid Replacement"),
+        (120000, "Spark Plugs Replacement Again"),
+        (135000, "Fuel Filter Replacement (for Diesel)"),
+        (150000, "Suspension & Steering Inspection"),
+        (165000, "Transmission Fluid Change"),
+        (180000, "Timing Belt Replacement"),
+        (195000, "Brake Discs Check"),
+        (210000, "Air Filter Replacement"),
+        (225000, "Spark Plugs Replacement"),
+        (240000, "Engine Mounts Inspection"),
+        (255000, "Oil & Filter Change"),
+        (270000, "Timing Belt Inspection"),
+        (285000, "EGR Valve Cleaning (Diesel)"),
+        (300000, "Full Inspection & Emission Check"),
+        (315000, "Suspension Check"),
+        (330000, "Brake Fluid Inspection"),
+        (345000, "Spark Plugs Cleaning (for Diesel)"),
+        (360000, "Full Inspection & Emission Check"),
+        (375000, "Timing Belt Change (Check Condition)"),
+        (390000, "Alternator Check"),
+        (405000, "Transmission Fluid Check"),
+        (420000, "Coolant Flush"),
+        (435000, "Oil & Filter Change"),
+        (450000, "Tire Change and Alignment"),
+        (465000, "Full Service Inspection"),
+        (480000, "Timing Belt Change"),
+        (495000, "Suspension & Steering Check"),
+        (510000, "EGR Valve Cleaning (Diesel)"),
+        (525000, "Full Check-up"),
+        (540000, "Brake Fluid Check"),
+        (555000, "Engine Mount Inspection"),
+        (570000, "Timing Belt Inspection"),
+        (585000, "Oil & Filter Change"),
+        (600000, "Full Service Inspection"),
+        (615000, "Brake Pad Replacement"),
+        (630000, "Spark Plugs Cleaning"),
+        (645000, "Coolant Flush"),
+        (660000, "Transmission Fluid Check"),
+        (675000, "Full Inspection & Emission Check"),
+        (690000, "Engine Check and Service"),
+    ]
 
     past = [(km, task) for km, task in checklist if mileage >= km]
     upcoming = [(km, task) for km, task in checklist if mileage < km]
@@ -186,11 +185,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     user_data = user_states[user_id]
     step = user_data.get("step")
-
-    if text == "\U0001F504 Start Over":
-        user_states[user_id] = {"step": None}
-        await update.message.reply_text("Restarted.", reply_markup=get_main_menu())  # Ensure to send the main menu
-        return
 
     if text == "\U0001F4A1 FAQ":
         keyboard = [[InlineKeyboardButton(topic, callback_data=topic)] for topic in faq_data]
