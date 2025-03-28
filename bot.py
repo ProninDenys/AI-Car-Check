@@ -1,5 +1,4 @@
 import os
-import random
 import sqlite3
 import sys
 import asyncio
@@ -56,73 +55,27 @@ def generate_pdf(user_id, data, estimate):
 
 # === FAQ TEXT ===
 faq_data = {
-    "Learner Permit": "To get a Learner Permit in Ireland, you must complete the theory test, apply online at NDLS.ie, and provide proof of address, ID, and residency.",
-    "New Driver": "As a new driver, you must display 'L' plates, drive with a fully licensed driver if required, and follow beginner restrictions until fully licensed.",
-    "How to buy a car": "You can buy a car from a dealer or privately. Check the NCT, tax, ownership history, and always sign a contract with proof of payment.",
-    "Registration": "After buying a car, register it at motor tax office or online (for new imports). You'll need proof of ownership and identification.",
-    "Road Tax": "You can pay Road Tax online at motortax.ie using the vehicle registration number and PIN. The amount depends on engine size or CO2 emissions.",
-    "NCT": "NCT is Ireland's National Car Test. It's required every 1–2 years depending on the vehicle age. Book on ncts.ie.",
-    "Required Documents": "Typical documents for buying a car include Vehicle Registration Certificate (logbook), proof of ID, insurance, and roadworthiness certificates."
+    "Learner Permit": "To get a Learner Permit in Ireland, you must pass the theory test, apply at NDLS.ie, and show proof of ID and address.",
+    "New Driver": "Display 'L' plates, follow beginner driving restrictions, and be accompanied if required until fully licensed.",
+    "How to buy a car": "Buy from dealer or privately. Always check NCT status, tax, ownership history, and get a receipt.",
+    "Registration": "Register at Motor Tax Office or online for imports. You'll need proof of ownership and ID.",
+    "Road Tax": "Pay road tax online via motortax.ie. Rates depend on engine size or CO2 emissions.",
+    "NCT": "NCT is the car test in Ireland. Book at ncts.ie. Required every 1–2 years based on age.",
+    "Required Documents": "You need vehicle logbook, ID, insurance, and roadworthiness certificates."
 }
 
-# === MENU FUNCTION ===
+# === MENU ===
 def get_main_menu():
     keyboard = [["\U0001F697 Check Car by Reg Number"],
                 ["\U0001F4C4 Estimate Insurance"],
+                ["\U0001F527 Service & Maintenance"],
                 ["\U0001F4D1 Insurance History"],
                 ["\U0001F4DC Service History"],
-                ["\U0001F527 Service & Maintenance"],
                 ["\U0001F504 Start Over"],
                 ["\U0001F4A1 FAQ"]]
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
-# === MAINTENANCE REPORT ===
-def get_maintenance_recommendations(mileage):
-    checklist = [
-        (15000, "Oil & Filter Change (every 10–15k km)"),
-        (30000, "Air Filter Change"),
-        (60000, "Spark Plugs Replacement"),
-        (90000, "Timing Belt Inspection"),
-        (120000, "Spark Plugs Replacement again"),
-        (150000, "Suspension & Steering Inspection"),
-        (180000, "Timing Belt Check"),
-        (180000, "Spark Plugs again"),
-        (210000, "Air Filter Change"),
-        (240000, "Spark Plugs Replacement again"),
-        (270000, "Timing Belt Inspection"),
-        (300000, "Oil & Filter Change"),
-        (330000, "Timing Belt Inspection"),
-        (360000, "Spark Plugs Replacement")
-    ]
-    return [(km, task) for km, task in checklist if km > mileage]
-
-# === SERVICE LOGIC ===
-def get_maintenance_report(brand, model, year, mileage, unit, fuel):
-    if unit.lower() == "miles":
-        mileage = round(mileage * 1.6)
-
-    checklist = [
-        (15000, "Oil & Filter Change (every 10–15k km)"),
-        (30000, "Air Filter Change"),
-        (60000, "Spark Plugs Replacement"),
-        (90000, "Timing Belt Inspection"),
-        (120000, "Spark Plugs Replacement again"),
-        (150000, "Suspension & Steering Inspection"),
-        (180000, "Timing Belt Check"),
-        (180000, "Spark Plugs again")
-    ]
-
-    past = [desc for km, desc in checklist if mileage >= km]
-    upcoming = [f"{km} km: {desc}" for km, desc in checklist if mileage < km]
-
-    report = f"\n\U0001F527 Service Report for {brand} {model} ({year}), {mileage} km, {fuel}\n\n"
-    report += "\U0001F4CC What should have been done:\n" + ("\n".join(f"\u2714\ufe0f {item}" for item in past) if past else "None") + "\n\n"
-    report += "\U0001F4CD Upcoming recommendations:\n" + ("\n".join(f"\U0001F4C3 {item}" for item in upcoming) if upcoming else "None")
-
-    return report
-
-
-# === CALLBACK HANDLER ===
+# === CALLBACKS ===
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -136,7 +89,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             await query.message.reply_text("PDF not found. Please calculate insurance first.")
     elif query.data == "back_to_menu":
-        await update.callback_query.message.reply_text("Returning to menu...", reply_markup=get_main_menu())
+        await query.message.reply_text("Returning to menu...", reply_markup=get_main_menu())
     elif query.data in faq_data:
         await query.message.reply_text(faq_data[query.data], reply_markup=get_main_menu())
 
@@ -145,6 +98,21 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     user_states[user_id] = {"step": None}
     await update.message.reply_text("Welcome to AutoCheck AI!\n\nChoose a feature below to begin:", reply_markup=get_main_menu())
+
+# === MAINTENANCE LOGIC ===
+def get_maintenance_recommendations(mileage):
+    checklist = [
+        (15000, "Oil & Filter Change"),
+        (30000, "Air Filter Change"),
+        (60000, "Spark Plugs Replacement"),
+        (90000, "Timing Belt Inspection"),
+        (120000, "Spark Plugs Replacement again"),
+        (150000, "Suspension & Steering Inspection"),
+        (180000, "Timing Belt Check"),
+        (210000, "Air Filter Change"),
+        (240000, "Spark Plugs Replacement again")
+    ]
+    return [(km, task) for km, task in checklist if km > mileage]
 
 # === MESSAGE HANDLER ===
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -159,7 +127,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if text == "\U0001F504 Start Over":
         user_states[user_id] = {"step": None}
-        await update.message.reply_text("Restarted. Use /start to begin again.")
+        await update.message.reply_text("Restarted.", reply_markup=get_main_menu())
+        return
+
+    if text == "\U0001F4A1 FAQ":
+        keyboard = [[InlineKeyboardButton(topic, callback_data=topic)] for topic in faq_data]
+        keyboard.append([InlineKeyboardButton("Back to menu", callback_data="back_to_menu")])
+        await update.message.reply_text("Choose a topic:", reply_markup=InlineKeyboardMarkup(keyboard))
         return
 
     if text == "\U0001F4D1 Insurance History":
@@ -188,14 +162,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 brand, model, year, mileage, unit, fuel = r
                 if unit.lower() == "miles":
                     mileage = round(mileage * 1.6)
-                report = f"\n🔧 {brand} {model} ({year}) — {mileage} km — {fuel}\n"
-                upcoming = get_maintenance_recommendations(mileage)
-                if upcoming:
-                    report += "\n📍 Upcoming recommendations:\n"
-                    for km, task in upcoming:
-                        report += f"⚠️ {km} km — {task}\n"
+                recommendations = get_maintenance_recommendations(mileage)
+                report = f"\n\U0001F527 {brand} {model} ({year}) — {mileage} km — {fuel}\n"
+                if recommendations:
+                    report += "\n\U0001F4CD Upcoming recommendations:\n"
+                    for km, task in recommendations:
+                        report += f"\u26A0\uFE0F {km} km — {task}\n"
                 else:
-                    report += "\n✅ No further maintenance needed.\n"
+                    report += "\n✅ No further maintenance needed."
                 await update.message.reply_text(report)
         else:
             await update.message.reply_text("No service history found.")
@@ -215,7 +189,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if step == "age":
             user_data["age"] = int(text)
             user_data["step"] = "license_year"
-            await update.message.reply_text("2️⃣ What year did you get your driving license?")
+            await update.message.reply_text("2️⃣ Year you got your license:")
         elif step == "license_year":
             user_data["license_year"] = int(text)
             user_data["step"] = "car_year"
@@ -223,41 +197,33 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         elif step == "car_year":
             user_data["car_year"] = int(text)
             user_data["step"] = "engine"
-            await update.message.reply_text("4️⃣ Engine size in cc (e.g. 1600):")
+            await update.message.reply_text("4️⃣ Engine size (cc):")
         elif step == "engine":
             user_data["engine"] = int(text)
             user_data["step"] = "fuel"
-            await update.message.reply_text("5️⃣ Fuel type (Petrol / Diesel / Electric / Hybrid):")
+            await update.message.reply_text("5️⃣ Fuel type:")
         elif step == "fuel":
             user_data["fuel"] = text
             user_data["step"] = "owners"
-            await update.message.reply_text("6️⃣ How many previous owners?")
+            await update.message.reply_text("6️⃣ Previous owners:")
         elif step == "owners":
             user_data["owners"] = int(text)
             age = user_data['age']
-            experience = 2024 - user_data['license_year']
+            exp = 2024 - user_data['license_year']
             car_year = user_data['car_year']
             engine = user_data['engine']
             fuel = user_data['fuel']
             owners = user_data['owners']
 
             base = 1000
-            if age < 25:
-                base += 500
-            if experience < 2:
-                base += 400
-            if engine > 1800:
-                base += 250
-            if fuel.lower() == "diesel":
-                base += 100
-            elif fuel.lower() == "electric":
-                base -= 150
-            elif fuel.lower() == "hybrid":
-                base -= 100
-            if owners > 3:
-                base += 200
-            if 2024 - car_year > 10:
-                base += 150
+            if age < 25: base += 500
+            if exp < 2: base += 400
+            if engine > 1800: base += 250
+            if fuel.lower() == "diesel": base += 100
+            elif fuel.lower() == "electric": base -= 150
+            elif fuel.lower() == "hybrid": base -= 100
+            if owners > 3: base += 200
+            if 2024 - car_year > 10: base += 150
 
             conn = sqlite3.connect("insurance.db")
             c = conn.cursor()
@@ -269,20 +235,19 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(f"""
 ✅ Estimated Annual Insurance:
 • Driver Age: {age}
-• Driving Experience: {experience} years
+• Experience: {exp} years
 • Car Year: {car_year}
 • Engine: {engine}cc
 • Fuel: {fuel}
 • Owners: {owners}
 
 💸 Estimated Insurance: EUR {base}/year
-(This is a simulated estimate based on public insurance trends in Ireland.)
+(This is a simulated estimate.)
 """)
             pdf_filename = generate_pdf(user_id, user_data, base)
             keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("\U0001F4C4 Download PDF", callback_data="download_pdf")]])
-            await update.message.reply_text("You can also download the result as a PDF:", reply_markup=keyboard)
+            await update.message.reply_text("Download your result:", reply_markup=keyboard)
             user_states[user_id]["step"] = None
-
         elif step == "brand":
             user_data["brand"] = text
             user_data["step"] = "model"
@@ -294,7 +259,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         elif step == "year":
             user_data["year"] = text
             user_data["step"] = "mileage"
-            await update.message.reply_text("Enter current mileage (number only):")
+            await update.message.reply_text("Enter mileage:")
         elif step == "mileage":
             user_data["mileage"] = int(text)
             user_data["step"] = "unit"
@@ -305,24 +270,15 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("Fuel type: Petrol / Diesel / Electric / Hybrid")
         elif step == "fuel_type":
             user_data["fuel"] = text
-            brand = user_data["brand"]
-            model = user_data["model"]
-            year = user_data["year"]
-            mileage = user_data["mileage"]
-            unit = user_data["unit"]
-            fuel = user_data["fuel"]
+            brand = user_data['brand']
+            model = user_data['model']
+            year = user_data['year']
+            mileage = user_data['mileage']
+            unit = user_data['unit']
+            fuel = user_data['fuel']
 
             if unit.lower() == "miles":
                 mileage = round(mileage * 1.6)
-
-            recommendations = get_maintenance_recommendations(mileage)
-            report = f"\n🔧 Maintenance Recommendations for {brand} {model} ({year}) — {mileage} km, {fuel}\n"
-            if recommendations:
-                report += "\n📍 Upcoming recommendations:\n"
-                for km, task in recommendations:
-                    report += f"⚠️ {km} km — {task}\n"
-            else:
-                report += "\n✅ No upcoming maintenance needed."
 
             conn = sqlite3.connect("insurance.db")
             c = conn.cursor()
@@ -331,11 +287,20 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             conn.commit()
             conn.close()
 
+            recommendations = get_maintenance_recommendations(mileage)
+            report = f"\n🔧 Maintenance for {brand} {model} ({year}) — {mileage} km, {fuel}\n"
+            if recommendations:
+                report += "\n📍 Upcoming recommendations:\n"
+                for km, task in recommendations:
+                    report += f"⚠️ {km} km — {task}\n"
+            else:
+                report += "\n✅ No upcoming maintenance needed."
+
             await update.message.reply_text(report)
             user_states[user_id]["step"] = None
 
     except ValueError:
-        await update.message.reply_text("❗ Please enter a valid number.")
+        await update.message.reply_text("❗ Enter a valid number.")
 
 # === INIT ===
 app = ApplicationBuilder().token(BOT_TOKEN).build()
