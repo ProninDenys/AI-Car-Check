@@ -325,15 +325,15 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             user_data["step"] = "mileage"
             await update.message.reply_text("Enter mileage:")
         elif step == "mileage":
-            # Проверка ввода пробега
             try:
-                mileage = int(text)
+                mileage = float(text.replace(",", ""))  # заменим запятые, если они есть
                 user_data["mileage"] = mileage
                 user_data["step"] = "unit"
                 await update.message.reply_text("Mileage unit: km or miles?")
             except ValueError:
                 await update.message.reply_text("❗ Please enter a valid number for mileage.")
                 return
+    
         elif step == "unit":
             user_data["unit"] = text
             user_data["step"] = "fuel_type"
