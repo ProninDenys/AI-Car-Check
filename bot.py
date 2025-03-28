@@ -177,7 +177,6 @@ def get_maintenance_recommendations(mileage, fuel):
     return report
 
 
-
 # === MESSAGE HANDLER ===
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
