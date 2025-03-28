@@ -176,6 +176,8 @@ def get_maintenance_recommendations(mileage, fuel):
 
     return report
 
+
+
 # === MESSAGE HANDLER ===
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -324,9 +326,15 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             user_data["step"] = "mileage"
             await update.message.reply_text("Enter mileage:")
         elif step == "mileage":
-            user_data["mileage"] = int(text)
-            user_data["step"] = "unit"
-            await update.message.reply_text("Mileage unit: km or miles?")
+            # Проверка ввода пробега
+            try:
+                mileage = int(text)
+                user_data["mileage"] = mileage
+                user_data["step"] = "unit"
+                await update.message.reply_text("Mileage unit: km or miles?")
+            except ValueError:
+                await update.message.reply_text("❗ Please enter a valid number for mileage.")
+                return
         elif step == "unit":
             user_data["unit"] = text
             user_data["step"] = "fuel_type"
@@ -340,7 +348,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             unit = user_data['unit']
             fuel = user_data['fuel']
 
-            # Convert mileage if unit is miles
             if unit.lower() == "miles":
                 mileage = round(mileage * 1.60934)
 
