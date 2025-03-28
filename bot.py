@@ -347,33 +347,29 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             unit = user_data['unit']
             fuel = user_data['fuel']
 
-            if unit.lower() == "miles":
-                mileage = round(mileage * 1.60934)
+    if unit.lower() == "miles":
+        mileage = round(mileage * 1.60934)
 
-            conn = sqlite3.connect("insurance.db")
-            c = conn.cursor()
-            c.execute("INSERT INTO maintenance_requests VALUES (?, ?, ?, ?, ?, ?, ?)",
-                      (user_id, brand, model, year, mileage, unit, fuel))
-            conn.commit()
-            conn.close()
+    conn = sqlite3.connect("insurance.db")
+    c = conn.cursor()
+    c.execute("INSERT INTO maintenance_requests VALUES (?, ?, ?, ?, ?, ?, ?)",
+              (user_id, brand, model, year, mileage, unit, fuel))
+    conn.commit()
+    conn.close()
 
-            recommendations = get_maintenance_recommendations(mileage, fuel)
-            report = f"\n🔧 Maintenance for {brand} {model} ({year}) — {mileage} km, {fuel}\n"
-            if recommendations:
-                report += "\n📍 Upcoming recommendations:\n"
-                for km, task in recommendations:
-                    report += f"⚠️ {km} km — {task}\n"
-            else:
-                report += "\n✅ No upcoming maintenance needed."
+    recommendations = get_maintenance_recommendations(mileage, fuel)
+    report = f"\n🔧 Maintenance for {brand} {model} ({year}) — {mileage} km, {fuel}\n"
+    if recommendations:
+        report += "\n📍 Upcoming recommendations:\n"
+        for km, task in recommendations:
+            report += f"⚠️ {km} km — {task}\n"
+    else:
+        report += "\n✅ No upcoming maintenance needed."
 
-            # Add maintenance report to PDF
-            pdf_filename = generate_pdf(user_id, user_data, base, report)
-            keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("\U0001F4C4 Download PDF", callback_data="download_pdf")]])
-            await update.message.reply_text(report, reply_markup=keyboard)
-            user_states[user_id]["step"] = None
-
-    except ValueError:
-        await update.message.reply_text("❗ Enter a valid number.")
+        # Add maintenance report to PDF
+    pdf_filename = generate_pdf(user_id, user_data, base, report)
+    keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("\U0001F4C4 Download PDF", callback_data="download_pdf")]])
+   
 
 # === INIT ===
 app = ApplicationBuilder().token(BOT_TOKEN).build()
