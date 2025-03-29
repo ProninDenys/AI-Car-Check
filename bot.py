@@ -1,7 +1,7 @@
 import os
 import requests
-from telegram import Update, ReplyKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes
+from telegram import Update, ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -27,16 +27,14 @@ def get_car_info(vin_code):
         'X-RapidAPI-Key': API_KEY,
         'X-RapidAPI-Host': 'vin-decoder-api-usa.p.rapidapi.com'
     }
-    params = {'v': vin_code}
-    
-    print(f"Making request to API with VIN: {vin_code}")  # Отладочная информация
+    params = {
+        'v': vin_code
+    }
     response = requests.get(VIN_API_URL, headers=headers, params=params)
     
     if response.status_code == 200:
-        print(f"Response from API: {response.json()}")  # Отладочная информация
         return response.json()
     else:
-        print(f"Error {response.status_code}: {response.text}")  # Отладочная информация
         return None
 
 # Стартовая команда
@@ -50,36 +48,31 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_vin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     vin_code = update.message.text.strip()
     
-    # Проверка формата VIN (17 символов)
-    if len(vin_code) != 17:
-        await update.message.reply_text("Пожалуйста, введите действительный VIN код из 17 символов.")
-        return
-    
     # Получаем данные о машине
     car_data = get_car_info(vin_code)
     
     if car_data:
         # Формируем сообщение с информацией о машине
-        car_info = f"**Информация о машине для VIN: {vin_code}**\n\n"
-        car_info += f"**Марка**: {car_data.get('make', 'N/A')}\n"
-        car_info += f"**Модель**: {car_data.get('model', 'N/A')}\n"
-        car_info += f"**Год выпуска**: {car_data.get('year', 'N/A')}\n"
-        car_info += f"**Тип двигателя**: {car_data.get('engine', 'N/A')}\n"
-        car_info += f"**Тип топлива**: {car_data.get('fuel', 'N/A')}\n"
-        car_info += f"**Трансмиссия**: {car_data.get('transmission', 'N/A')}\n"
+        car_info = f"**Car Info for VIN: {vin_code}**\n\n"
+        car_info += f"**Make**: {car_data.get('make', 'N/A')}\n"
+        car_info += f"**Model**: {car_data.get('model', 'N/A')}\n"
+        car_info += f"**Year**: {car_data.get('year', 'N/A')}\n"
+        car_info += f"**Engine Type**: {car_data.get('engine', 'N/A')}\n"
+        car_info += f"**Fuel Type**: {car_data.get('fuel', 'N/A')}\n"
+        car_info += f"**Transmission**: {car_data.get('transmission', 'N/A')}\n"
         
         await update.message.reply_text(car_info)
     else:
-        await update.message.reply_text("Извините, информация по этому VIN не найдена.")
+        await update.message.reply_text("Sorry, no information found for this VIN.")
 
 # Обработка кнопки FAQ
 async def handle_faq(update: Update, context: ContextTypes.DEFAULT_TYPE):
     faq = """**FAQ:**
-    - Что такое VIN? 
-      VIN (Vehicle Identification Number) — это уникальный код, который используется для идентификации транспортных средств.
+    - What is a VIN? 
+      A Vehicle Identification Number (VIN) is a unique code used by the automotive industry to identify individual motor vehicles.
     
-    - Как использовать VIN Check?
-      Вы можете ввести VIN номер, чтобы узнать спецификации автомобиля, историю аварий и многое другое."""
+    - How can I use VIN Check?
+      You can enter a VIN to check the vehicle's specifications, accident history, and more."""
     
     await update.message.reply_text(faq)
 
@@ -88,11 +81,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
     
     if text == "🔍 Check Car by VIN":
-        await update.message.reply_text("Пожалуйста, введите VIN код автомобиля:")
+        await update.message.reply_text("Please enter the VIN number of the car:")
     elif text == "❓ FAQ":
         await handle_faq(update, context)
     else:
-        await update.message.reply_text("Извините, я не понял ваш запрос. Пожалуйста, выберите опцию из меню.", reply_markup=get_main_menu())
+        await update.message.reply_text("Sorry, I didn't understand that. Please choose an option from the menu.", reply_markup=get_main_menu())
 
 # Настройка бота
 app = ApplicationBuilder().token(BOT_TOKEN).build()
