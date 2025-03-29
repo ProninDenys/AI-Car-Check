@@ -44,26 +44,32 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=get_main_menu()
     )
 
-# Обработка VIN
+# Обработка ввода VIN
 async def handle_vin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     vin_code = update.message.text.strip()
     
-    # Получаем данные по VIN
+    # Проверка формата VIN (17 символов)
+    if len(vin_code) != 17:
+        await update.message.reply_text("Пожалуйста, введите действительный VIN код из 17 символов.")
+        return
+    
+    # Получаем информацию о машине через API
     car_data = get_car_info(vin_code)
     
     if car_data:
-        car_info = f"**Car Info for VIN: {vin_code}**\n\n"
-        car_info += f"**Make**: {car_data.get('make', 'N/A')}\n"
-        car_info += f"**Model**: {car_data.get('model', 'N/A')}\n"
-        car_info += f"**Year**: {car_data.get('year', 'N/A')}\n"
-        car_info += f"**Engine Type**: {car_data.get('engine', 'N/A')}\n"
-        car_info += f"**Fuel Type**: {car_data.get('fuel', 'N/A')}\n"
-        car_info += f"**Transmission**: {car_data.get('transmission', 'N/A')}\n"
+        # Формируем сообщение с данными о машине
+        car_info = f"**Информация о машине для VIN: {vin_code}**\n\n"
+        car_info += f"**Марка**: {car_data.get('make', 'N/A')}\n"
+        car_info += f"**Модель**: {car_data.get('model', 'N/A')}\n"
+        car_info += f"**Год выпуска**: {car_data.get('year', 'N/A')}\n"
+        car_info += f"**Тип двигателя**: {car_data.get('engine', 'N/A')}\n"
+        car_info += f"**Тип топлива**: {car_data.get('fuel', 'N/A')}\n"
+        car_info += f"**Трансмиссия**: {car_data.get('transmission', 'N/A')}\n"
         
         await update.message.reply_text(car_info)
     else:
-        await update.message.reply_text("Sorry, no information found for this VIN. Please check the VIN and try again.")
-
+        await update.message.reply_text("Извините, информация по этому VIN не найдена.")
+        
 # Обработка FAQ
 async def handle_faq(update: Update, context: ContextTypes.DEFAULT_TYPE):
     faq = """**FAQ:**
