@@ -7,11 +7,11 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # API ключ для RapidAPI
-API_KEY = "ae6c77f019msh6cad65d207e4245p1e3c08jsn66ce1bd839c3"
+API_KEY = os.getenv("RAPIDAPI_KEY")  # загрузите API ключ из переменной окружения
 VIN_API_URL = "https://vin-decoder-api-usa.p.rapidapi.com/vin"
 
 # Телеграм токен
-BOT_TOKEN = os.getenv("7449796964:AAG4Y8XldVUCXfRE9efIofu5EgHvLpzH6n8")
+BOT_TOKEN = os.getenv("BOT_TOKEN")  # загрузите токен из переменной окружения
 
 # Главный экран с кнопками
 def get_main_menu():
@@ -30,11 +30,12 @@ def get_car_info(vin_code):
     params = {
         'v': vin_code
     }
-    response = requests.get(VIN_API_URL, headers=headers, params=params)
-    
-    if response.status_code == 200:
+    try:
+        response = requests.get(VIN_API_URL, headers=headers, params=params)
+        response.raise_for_status()  # Пытаемся получить данные, если что-то не так — поднимется исключение
         return response.json()
-    else:
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching VIN data: {e}")
         return None
 
 # Стартовая команда
@@ -63,7 +64,7 @@ async def handle_vin(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         await update.message.reply_text(car_info)
     else:
-        await update.message.reply_text("Sorry, no information found for this VIN.")
+        await update.message.reply_text("Sorry, no information found for this VIN. Please check the VIN and try again.")
 
 # Обработка кнопки FAQ
 async def handle_faq(update: Update, context: ContextTypes.DEFAULT_TYPE):
