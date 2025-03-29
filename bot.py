@@ -11,7 +11,7 @@ API_KEY = "ae6c77f019msh6cad65d207e4245p1e3c08jsn66ce1bd839c3"
 VIN_API_URL = "https://vin-decoder-api-usa.p.rapidapi.com/vin"
 
 # Телеграм токен
-BOT_TOKEN = os.getenv("BOT_TOKEN")
+BOT_TOKEN = os.getenv("7449796964:AAG4Y8XldVUCXfRE9efIofu5EgHvLpzH6n8")
 
 # Главный экран с кнопками
 def get_main_menu():
