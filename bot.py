@@ -1,7 +1,7 @@
 import os
 import requests
-from telegram import Update, ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
+from telegram import Update, ReplyKeyboardMarkup
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -27,14 +27,16 @@ def get_car_info(vin_code):
         'X-RapidAPI-Key': API_KEY,
         'X-RapidAPI-Host': 'vin-decoder-api-usa.p.rapidapi.com'
     }
-    params = {
-        'v': vin_code
-    }
+    params = {'v': vin_code}
+    
+    print(f"Making request to API with VIN: {vin_code}")  # Отладочная информация
     response = requests.get(VIN_API_URL, headers=headers, params=params)
     
     if response.status_code == 200:
+        print(f"Response from API: {response.json()}")  # Отладочная информация
         return response.json()
     else:
+        print(f"Error {response.status_code}: {response.text}")  # Отладочная информация
         return None
 
 # Стартовая команда
