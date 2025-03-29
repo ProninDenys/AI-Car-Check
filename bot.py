@@ -3,12 +3,12 @@ import sqlite3
 import sys
 import asyncio
 import requests
+from bs4 import BeautifulSoup
 from telegram import Update, ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
 from telegram.constants import ChatAction
 from reportlab.pdfgen import canvas
 from dotenv import load_dotenv
-from bs4 import BeautifulSoup
 
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -74,18 +74,21 @@ faq_data = {
 # === MENU ===
 def get_main_menu():
     keyboard = [
-        [InlineKeyboardButton("Check Car by Reg Number", callback_data="check_car")],
-        [InlineKeyboardButton("Estimate Insurance", callback_data="estimate_insurance")],
-        [InlineKeyboardButton("Service & Maintenance", callback_data="service_maintenance")],
-        [InlineKeyboardButton("Insurance History", callback_data="insurance_history")],
-        [InlineKeyboardButton("FAQ", callback_data="faq")],
+        ["\U0001F697 Check Car by Reg Number"],
+        ["\U0001F4C4 Estimate Insurance"],
+        ["\U0001F527 Service & Maintenance"],
+        ["\U0001F4D1 Insurance History"],
+        ["\U0001F4DC Service History"],
+        ["\U0001F4A1 FAQ"]
     ]
-    return InlineKeyboardMarkup(keyboard)
+    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
 # === CALLBACKS ===
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
+
+    print(f"Button clicked: {query.data}")  # Debugging line to check what data is coming from the button
 
     # Callback for downloading the PDF
     if query.data == "download_pdf":
@@ -101,15 +104,6 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Callback for FAQ buttons
     elif query.data in faq_data:
         await query.message.reply_text(faq_data[query.data], reply_markup=get_main_menu())
-    
-    # Callback for "Check Car by Reg Number" button
-    elif query.data == "check_car":
-        await query.message.reply_text("Please enter the car registration number.")
-        user_states[query.from_user.id]["step"] = "car_registration"  # Set the step for the car registration input
-    
-    # Default response for unknown callback
-    else:
-        await query.message.reply_text("Unknown command.", reply_markup=get_main_menu())
 
 # === START ===
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -200,15 +194,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_data = user_states[user_id]
     step = user_data.get("step")
 
-    # Обработка ввода для "Check Car by Reg Number"
-    if step == "car_registration":
-        registration_number = text.strip()  # Регистрационный номер
-        car_info = get_car_info_by_registration(registration_number)  # Получаем информацию о машине
-        await update.message.reply_text(car_info)
-        user_states[user_id]["step"] = None
-        return
-
-    # Обработка других шагов
     if text == "\U0001F504 Start Over":
         user_states[user_id] = {"step": None}
         await update.message.reply_text("Restarted.", reply_markup=get_main_menu())
@@ -386,15 +371,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # === INIT ===
 app = ApplicationBuilder().token(BOT_TOKEN).build()
-
-# Add handlers
 app.add_handler(CommandHandler("start", start))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-app.add_handler(CallbackQueryHandler(handle_callback))  # Ensure callbacks are handled
+app.add_handler(CallbackQueryHandler(handle_callback))
 
 print("AI Car Check Bot is running...")
-
 if sys.platform.startswith('win'):
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-
 app.run_polling()
