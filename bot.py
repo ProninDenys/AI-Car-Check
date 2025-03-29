@@ -2,13 +2,13 @@ import os
 import sqlite3
 import sys
 import asyncio
-import requests
-from bs4 import BeautifulSoup
 from telegram import Update, ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
 from telegram.constants import ChatAction
 from reportlab.pdfgen import canvas
 from dotenv import load_dotenv
+import requests
+from bs4 import BeautifulSoup
 
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -88,7 +88,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
-    print(f"Button clicked: {query.data}")  # Debugging line to check what data is coming from the button
+    print(f"Button clicked: {query.data}")  # Debugging line to check button data
 
     # Callback for downloading the PDF
     if query.data == "download_pdf":
