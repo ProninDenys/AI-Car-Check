@@ -1,19 +1,18 @@
 import os
 import requests
-from telegram import Update, ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
+from telegram import Update, ReplyKeyboardMarkup
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 from dotenv import load_dotenv
 
+# Загружаем .env файл
 load_dotenv()
 
-# API ключ для RapidAPI
-API_KEY = os.getenv("RAPIDAPI_KEY")  # загрузите API ключ из переменной окружения
+# Ключ API RapidAPI и токен бота
+API_KEY = os.getenv("RAPIDAPI_KEY")
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 VIN_API_URL = "https://vin-decoder-api-usa.p.rapidapi.com/vin"
 
-# Телеграм токен
-BOT_TOKEN = os.getenv("BOT_TOKEN")  # загрузите токен из переменной окружения
-
-# Главный экран с кнопками
+# Главное меню для бота
 def get_main_menu():
     keyboard = [
         ["🔍 Check Car by VIN"],
@@ -21,7 +20,7 @@ def get_main_menu():
     ]
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
-# Получение данных по VIN
+# Функция для получения информации по VIN
 def get_car_info(vin_code):
     headers = {
         'X-RapidAPI-Key': API_KEY,
@@ -32,8 +31,8 @@ def get_car_info(vin_code):
     }
     try:
         response = requests.get(VIN_API_URL, headers=headers, params=params)
-        response.raise_for_status()  # Пытаемся получить данные, если что-то не так — поднимется исключение
-        return response.json()
+        response.raise_for_status()  # Проверка на успешный ответ
+        return response.json()  # Возвращаем данные в формате JSON
     except requests.exceptions.RequestException as e:
         print(f"Error fetching VIN data: {e}")
         return None
@@ -45,15 +44,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=get_main_menu()
     )
 
-# Обработка ввода VIN
+# Обработка VIN
 async def handle_vin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     vin_code = update.message.text.strip()
     
-    # Получаем данные о машине
+    # Получаем данные по VIN
     car_data = get_car_info(vin_code)
     
     if car_data:
-        # Формируем сообщение с информацией о машине
         car_info = f"**Car Info for VIN: {vin_code}**\n\n"
         car_info += f"**Make**: {car_data.get('make', 'N/A')}\n"
         car_info += f"**Model**: {car_data.get('model', 'N/A')}\n"
@@ -66,7 +64,7 @@ async def handle_vin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("Sorry, no information found for this VIN. Please check the VIN and try again.")
 
-# Обработка кнопки FAQ
+# Обработка FAQ
 async def handle_faq(update: Update, context: ContextTypes.DEFAULT_TYPE):
     faq = """**FAQ:**
     - What is a VIN? 
